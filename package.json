@@ -10,8 +10,9 @@
   "files": ["index.js"],
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check test/table.test.js && node --check examples/sessions.js",
-    "example": "node examples/sessions.js"
+    "check": "node --check index.js && node --check test/table.test.js && node --check test/time.test.js && node --check examples/sessions.js && node --check examples/ratelimit.js",
+    "example": "node examples/sessions.js",
+    "example:ratelimit": "node examples/ratelimit.js"
   },
   "engines": { "node": ">=18" }
 }

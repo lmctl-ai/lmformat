@@ -39,3 +39,35 @@ narrower than the output may wrap lines.
 
 Requires Node.js 18 or newer. Run `npm test` for alignment tests, `npm run check`
 for syntax checks, and `npm run example` for the complete session example.
+
+## Relative timestamps
+
+```js
+const { formatRelativeTime, printTable } = require('lmformat');
+const now = '2026-09-25T20:00:00Z'; // Omit to use Date.now().
+printTable([
+  ['weekly', formatRelativeTime('2026-09-28T20:00:00Z', { now })],
+  ['session', formatRelativeTime('2026-09-25T20:40:00Z', { now })],
+  ['missing', formatRelativeTime('unknown', { now })],
+], { headers: ['limit', 'resets in'] });
+// weekly   3d
+// session  40m
+// missing  unknown
+```
+
+`formatRelativeTime(timestamp, { now }?)` accepts a Date, an epoch timestamp in
+milliseconds, or a date string accepted by `Date.parse`. Prefer ISO 8601 strings
+with an explicit timezone. It returns the largest whole unit (`d`, `h`, `m`, `s`),
+rounding down: 2 days and 20 hours becomes `2d`. Days mean 24 hours.
+Future timestamps return `3d`; past timestamps return `3d ago`; differences below
+one second return `now`. Missing or invalid timestamps return `unknown`.
+An invalid explicit `now` throws a TypeError. Capture `now` once when formatting
+multiple timestamps so the report uses a consistent reference time.
+
+Run `npm run example:ratelimit` for the supplied provider and rate-limit data,
+including read ages, reset countdowns, credits, and exhausted status. This example
+uses the fixed snapshot time `2026-09-25T20:33:47Z` for reproducible output.
+Transform timestamp cells before passing rows to the table formatter; widths
+are calculated from the resulting text automatically.
+
+MIT licensed. Project homepage: [lmctl.com](https://lmctl.com).

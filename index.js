@@ -46,3 +46,29 @@ function printTable(rows, { headers, stream = process.stdout } = {}) {
 
 exports.formatTable = formatTable;
 exports.printTable = printTable;
+
+function timestamp(value) {
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim()) return Date.parse(value);
+  return NaN;
+}
+
+/** Compact time until a timestamp; past times carry an "ago" suffix. */
+function formatRelativeTime(value, { now = Date.now() } = {}) {
+  const reference = timestamp(now);
+  if (!Number.isFinite(reference)) throw new TypeError('now must be a valid timestamp');
+  const target = timestamp(value);
+  if (!Number.isFinite(target)) return 'unknown';
+
+  const difference = target - reference;
+  const seconds = Math.floor(Math.abs(difference) / 1000);
+  if (seconds === 0) return 'now';
+  for (const [unit, size] of [['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
+    if (seconds >= size) {
+      return `${Math.floor(seconds / size)}${unit}${difference < 0 ? ' ago' : ''}`;
+    }
+  }
+}
+
+exports.formatRelativeTime = formatRelativeTime;
