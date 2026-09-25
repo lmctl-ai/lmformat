@@ -1,5 +1,5 @@
 {
-  "name": "lmformat",
+  "name": "@lmctl-ai/lmformat",
   "version": "0.1.0",
   "description": "Automatically sized, left-aligned tables for Node.js CLI output",
   "main": "index.js",
@@ -8,7 +8,9 @@
   "homepage": "https://lmctl.com",
   "repository": { "type": "git", "url": "git+https://github.com/lmctl-ai/lmformat.git" },
   "files": ["index.js"],
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "scripts": {
+    "build": "npm run check && node scripts/build.js",
     "test": "node --test",
     "check": "node --check index.js && node --check test/table.test.js && node --check test/time.test.js && node --check examples/sessions.js && node --check examples/ratelimit.js",
     "example": "node examples/sessions.js",

@@ -1,11 +1,13 @@
 # lmformat
 
 Dependency-free Node.js library for automatically sized, left-aligned CLI tables.
+Install with `npm install @lmctl-ai/lmformat`.
+
 Pass an array of rows; each row is an array of cells. No column widths are needed.
 
 ```js
-const { formatTable, printTable } = require('lmformat');
-// ESM also supports: import { formatTable, printTable } from 'lmformat';
+const { formatTable, printTable } = require('@lmctl-ai/lmformat');
+// ESM also supports: import { formatTable, printTable } from '@lmctl-ai/lmformat';
 
 const rows = [
   ['triage.lmctl', 'Triage', 'done', '25s'],
@@ -43,7 +45,7 @@ for syntax checks, and `npm run example` for the complete session example.
 ## Relative timestamps
 
 ```js
-const { formatRelativeTime, printTable } = require('lmformat');
+const { formatRelativeTime, printTable } = require('@lmctl-ai/lmformat');
 const now = '2026-09-25T20:00:00Z'; // Omit to use Date.now().
 printTable([
   ['weekly', formatRelativeTime('2026-09-28T20:00:00Z', { now })],
@@ -71,3 +73,39 @@ Transform timestamp cells before passing rows to the table formatter; widths
 are calculated from the resulting text automatically.
 
 MIT licensed. Project homepage: [lmctl.com](https://lmctl.com).
+
+## Publishing
+
+CI builds and tests pushes to `main` and pull requests on Node 18, 20, 22, and 24.
+It also installs the built tarball and checks CommonJS and ESM imports.
+`npm run build` checks syntax and produces `release/lmctl-ai-lmformat-VERSION.tgz`.
+Only the library, package metadata, README, and license are included.
+
+Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
+from GitHub Actions with provenance. No npm token is stored in GitHub.
+
+One-time setup by an npm account with access to the `@lmctl-ai` scope:
+
+1. Run `npm login`, then `npm ci && npm test && npm run build` and
+   `npm publish ./release/lmctl-ai-lmformat-0.1.0.tgz --access public` to create
+   the first package version. Complete npm's authentication/2FA prompt if requested.
+2. On npmjs.com, open `@lmctl-ai/lmformat` → Settings → Trusted Publisher and
+   select GitHub Actions. Set organization to `lmctl-ai`, repository to `lmformat`,
+   and workflow filename to `publish.yml`. Leave environment blank and allow
+   direct publishing (`npm publish`).
+3. Subsequent versions publish automatically when their matching version tag is
+   pushed. The workflow tests and builds again before publishing with provenance.
+
+For example, after committing changes on `main`:
+
+```sh
+npm version patch -m 'Release %s for npm consumers'
+git push origin main
+git push origin --tags
+```
+
+The tag must equal `v` plus the version in `package.json`. A tag for an already
+published version cannot republish it. No version is changed by CI itself.
+For a build and publish dry run, use the Publish workflow's **Run workflow** button
+with `dry_run` checked. To retry an unpublished tagged version, select that tag
+and uncheck `dry_run`. Real manual publishes from branch refs are rejected.

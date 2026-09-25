@@ -4,3 +4,4 @@ coverage/
 .omx/
 *.lmctl
 01_*.txt
+release/
