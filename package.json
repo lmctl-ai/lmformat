@@ -1,0 +1,17 @@
+{
+  "name": "lmformat",
+  "version": "0.1.0",
+  "description": "Automatically sized, left-aligned tables for Node.js CLI output",
+  "main": "index.js",
+  "license": "MIT",
+  "author": "Mike Ma <mike.ma@lmctl.com>",
+  "homepage": "https://lmctl.com",
+  "repository": { "type": "git", "url": "git+https://github.com/lmctl-ai/lmformat.git" },
+  "files": ["index.js"],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check test/table.test.js && node --check examples/sessions.js",
+    "example": "node examples/sessions.js"
+  },
+  "engines": { "node": ">=18" }
+}
