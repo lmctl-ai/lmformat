@@ -3,4 +3,4 @@ coverage/
 *.tgz
 .omx/
 *.lmctl
-01_basic.txt
+01_*.txt
