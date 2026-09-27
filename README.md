@@ -62,7 +62,9 @@ or.lmctl:Lead        chat  ran 5s, idle 6m ago
 `measureColumns(grids)` takes an array of grids; a grid is a rows array or
 `{ rows, headers }`. It returns the display width of each column across all
 grids. `renderGrid(rows, { widths, headers, align }?)` renders one grid with
-explicit widths; a cell longer than its width overflows (never truncated).
+explicit widths; a non-trailing cell wider than its width is truncated with an
+ellipsis (pass `truncate: false` to let it overflow). Trailing cells are never
+truncated — the last populated column is open-ended by design.
 Omitting `widths` makes `renderGrid` measure its own rows — exactly what
 `formatTable` does. Measure globally and render per section, or measure per
 section — the caller chooses.
@@ -71,7 +73,21 @@ All rows are loaded before formatting. Each column takes the maximum cell length
 across headers and data; cells are right-padded with spaces and columns have a
 two-space gap. Trailing empty cells add no padding. Ragged rows are accepted;
 `null`, `undefined`, and missing cells become empty strings. Other values use
-`String(value)`. Inputs are not modified and long text is never truncated or wrapped.
+`String(value)`. Inputs are not modified. Long text is never wrapped; width
+outliers are trimmed (see below) and truncated with an ellipsis unless
+`truncate: false`.
+
+## Width-outlier policy (default on, opt out per call)
+
+One giant cell should not stretch a whole column. `measureColumns(grids,
+{ trimOutliers }?)` — default `true` — excludes a data cell from its column's
+width when the cell is wider than BOTH the column's mean + 3 standard
+deviations AND 3x the column median. The double condition keeps modest,
+legitimate variation (a longer alias, a wider header) from ever trimming;
+headers always participate in the width. When rendering, a non-trailing cell
+wider than its column is truncated to the width with a trailing `…`;
+`renderGrid`/`formatTable`/`printTable` accept `truncate: false` to let such
+cells overflow instead.
 
 Cells must be plain single-line text: tabs, newlines, ANSI escape sequences, and
 other terminal control characters are rejected (use `escapeCell` to sanitize

@@ -79,32 +79,85 @@ function normalizeGrid(grid) {
   throw new TypeError('each grid must be a rows array or { rows, headers }');
 }
 
+/** Truncate a cell to a display width, ending with an ellipsis. */
+function truncateDisplay(cell, width) {
+  if (displayWidth(cell) <= width) return cell;
+  if (width <= 1) return '…';
+  let out = '';
+  let used = 0;
+  for (const char of cell) {
+    const charWidth = displayWidth(char);
+    if (used + charWidth > width - 1) break;
+    out += char;
+    used += charWidth;
+  }
+  return `${out}…`;
+}
+
 /** Measure column display widths across one or more grids. Pair with
- * renderGrid to align several tables on one shared grid. */
-function measureColumns(grids) {
+ * renderGrid to align several tables on one shared grid.
+ * By default, statistical outliers are excluded from each column's width so
+ * one giant cell cannot stretch the whole column. A DATA cell counts as an
+ * outlier only when it is wider than BOTH the column's mean + 3 standard
+ * deviations AND 3x the column median — modest variation (a longer alias, a
+ * wider header) never trims. Header cells always participate in the width.
+ * Pass { trimOutliers: false } to measure every cell. */
+function measureColumns(grids, { trimOutliers = true } = {}) {
   if (!Array.isArray(grids)) {
     throw new TypeError('grids must be an array of grids');
   }
-  const widths = [];
+  const dataSamples = [];
+  const headerWidths = [];
+  const push = (samples, column, width) => {
+    (samples[column] ??= []).push(width);
+  };
   for (const input of grids) {
     const grid = normalizeGrid(input);
-    const rows = grid.rows.map(normalizeRow);
-    if (grid.headers !== undefined) rows.unshift(normalizeRow(grid.headers));
-    for (const row of rows) {
-      row.forEach((cell, column) => {
-        widths[column] = Math.max(widths[column] || 0, displayWidth(cell));
+    if (grid.headers !== undefined) {
+      normalizeRow(grid.headers).forEach((cell, column) => {
+        push(headerWidths, column, displayWidth(cell));
       });
     }
+    for (const row of grid.rows.map(normalizeRow)) {
+      row.forEach((cell, column) => {
+        push(dataSamples, column, displayWidth(cell));
+      });
+    }
+  }
+  const columnCount = Math.max(dataSamples.length, headerWidths.length);
+  const widths = [];
+  for (let column = 0; column < columnCount; column += 1) {
+    const headersMax = Math.max(0, ...(headerWidths[column] ?? []));
+    const list = dataSamples[column] ?? [];
+    if (list.length === 0) {
+      widths[column] = headersMax;
+      continue;
+    }
+    const dataMax = Math.max(...list);
+    let kept = list;
+    if (trimOutliers && list.length >= 2) {
+      const mean = list.reduce((sum, w) => sum + w, 0) / list.length;
+      const variance = list.reduce((sum, w) => sum + (w - mean) ** 2, 0) / list.length;
+      const sorted = [...list].sort((a, b) => a - b);
+      const median = sorted[Math.floor((sorted.length - 1) / 2)];
+      const threshold = Math.max(mean + 3 * Math.sqrt(variance), 3 * median);
+      kept = list.filter((w) => w <= threshold);
+      if (kept.length === 0) kept = list;
+    }
+    widths[column] = Math.max(headersMax, ...kept);
   }
   return widths;
 }
 
 exports.measureColumns = measureColumns;
 
-/** Render rows with explicit column widths (from measureColumns). Widths
- * shorter than a cell simply let the cell overflow; omitted widths measure
- * the given rows alone (equivalent to formatTable). */
-function renderGrid(rows, { widths, headers, align } = {}) {
+/** Render rows with explicit column widths (from measureColumns). Non-trailing
+ * cells wider than their column are truncated with an ellipsis so the grid
+ * stays aligned (pass { truncate: false } to let them overflow); trailing
+ * cells are never padded or truncated, so an open-ended last column renders
+ * in full. Omitted widths measure the given rows alone (equivalent to
+ * formatTable). */
+function renderGrid(rows, { widths, headers, align, truncate = true } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
@@ -112,7 +165,7 @@ function renderGrid(rows, { widths, headers, align } = {}) {
     throw new TypeError('widths must be an array of column widths');
   }
   const alignment = normalizeAlign(align);
-  const columns = widths ?? measureColumns([{ rows, headers }]);
+  const columns = widths ?? measureColumns([{ rows, headers }], { trimOutliers: truncate });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
 
@@ -121,8 +174,10 @@ function renderGrid(rows, { widths, headers, align } = {}) {
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
     return row.slice(0, last + 1).map((cell, column) => {
-      if (alignment[column] === 'right') return padDisplay(cell, columns[column] || 0, true);
-      return column === last ? cell : padDisplay(cell, columns[column] || 0, false);
+      const width = columns[column] || 0;
+      const fitted = truncate && width > 0 && column !== last ? truncateDisplay(cell, width) : cell;
+      if (alignment[column] === 'right') return padDisplay(fitted, width, true);
+      return column === last ? fitted : padDisplay(fitted, width, false);
     }).join('  ');
   }).join('\n');
 }
@@ -130,13 +185,13 @@ function renderGrid(rows, { widths, headers, align } = {}) {
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align } = {}) {
-  return renderGrid(rows, { headers, align });
+function formatTable(rows, { headers, align, truncate } = {}) {
+  return renderGrid(rows, { headers, align, truncate });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align });
+function printTable(rows, { headers, align, truncate, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate });
   if (output) stream.write(`${output}\n`);
 }
 

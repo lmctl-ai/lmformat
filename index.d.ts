@@ -4,6 +4,8 @@ export type ColumnAlign = 'left' | 'right';
 export interface TableOptions {
   headers?: TableCell[];
   align?: ColumnAlign[];
+  /** Truncate over-width non-trailing cells with an ellipsis (default true). */
+  truncate?: boolean;
 }
 
 export interface Grid {
@@ -15,11 +17,16 @@ export interface RenderGridOptions extends TableOptions {
   widths?: number[];
 }
 
+export interface MeasureOptions {
+  /** Exclude +3σ width outliers per column from the measurement (default true). */
+  trimOutliers?: boolean;
+}
+
 export interface PrintTableOptions extends TableOptions {
   stream?: { write(text: string): void };
 }
 
-export function measureColumns(grids: Array<Grid | TableCell[][]>): number[];
+export function measureColumns(grids: Array<Grid | TableCell[][]>, options?: MeasureOptions): number[];
 export function renderGrid(rows: TableCell[][], options?: RenderGridOptions): string;
 export function formatTable(rows: TableCell[][], options?: TableOptions): string;
 export function printTable(rows: TableCell[][], options?: PrintTableOptions): void;

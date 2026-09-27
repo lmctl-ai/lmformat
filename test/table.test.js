@@ -116,9 +116,48 @@ test('measureColumns honors grid headers and bare rows arrays', () => {
   assert.throws(() => measureColumns([{ rows: 'x' }]), TypeError);
 });
 
-test('renderGrid without widths measures its own rows; short widths overflow', () => {
+test('renderGrid without widths measures its own rows; short widths truncate', () => {
   assert.equal(renderGrid([['a', 'bb'], ['long', 'x']]), 'a     bb\nlong  x');
-  // A width narrower than the cell lets the cell overflow (no truncation).
-  assert.equal(renderGrid([['long', 'x']], { widths: [2, 1] }), 'long  x');
+  // A width narrower than a non-trailing cell truncates it with an ellipsis.
+  assert.equal(renderGrid([['long', 'x']], { widths: [2, 1] }), 'l…  x');
+  // Opt out to let over-width cells overflow instead.
+  assert.equal(renderGrid([['long', 'x']], { widths: [2, 1], truncate: false }), 'long  x');
+  // A zero/missing width never truncates (caller passed no constraint).
+  assert.equal(renderGrid([['long', 'x']], { widths: [] }), 'long  x');
+  // Trailing cells are never truncated — an open-ended last column renders in full.
+  assert.equal(renderGrid([['a', 'a very long trailing cell']], { widths: [1, 3] }),
+    'a  a very long trailing cell');
   assert.throws(() => renderGrid([['a']], { widths: 'wide' }), TypeError);
+});
+
+test('measureColumns trims only egregious width outliers by default', () => {
+  // One 120-char cell among ~10-char cells: excluded from the width.
+  const quiet = Array.from({ length: 12 }, (_, i) => [`row-${i}`, 'ok']);
+  const giant = [['row-x', 'E'.repeat(120)]];
+  const widths = measureColumns([quiet, giant]);
+  assert.equal(widths[1], 2); // the 120-char cell is trimmed; kept max is 'ok'
+  assert.deepEqual(measureColumns([quiet, giant], { trimOutliers: false })[1], 120);
+  // Modest variation is NOT trimmed: one 12-char cell among 6..8-char cells stays.
+  const aliases = [['Lead'], ['Reviewer'], ['MetaLead-long']];
+  assert.equal(measureColumns([aliases])[0], 13);
+  // Headers are never trimmed, even when wider than every data cell.
+  assert.equal(measureColumns([{ rows: [['a'], ['bb']], headers: ['a very wide header'] }])[0], 18);
+});
+
+test('over-width outlier cells render truncated with an ellipsis', () => {
+  // The giant cell sits MID-row (a trailing cell is open-ended by design).
+  const rows = [
+    ['alpha', 'ok'], ['beta', 'ok'], ['gamma', 'ok'], ['delta', 'ok'],
+    ['epsilon', 'ok'], ['zeta', 'ok'], ['eta', 'ok'], ['theta', 'ok'],
+    ['iota', 'ok'], ['kappa', 'ok'], ['lambda', 'ok'],
+    ['mu', `${'E'.repeat(120)}`, 'tail'],
+  ];
+  const lines = formatTable(rows).split('\n');
+  const out = lines[11];
+  assert.ok(out.includes('…'));
+  assert.ok(!out.includes('E'.repeat(120)));
+  // The truncated cell still occupies its column: 'tail' starts where the
+  // other rows' third column would, and the first columns are intact.
+  assert.ok(lines[0].startsWith('alpha'));
+  assert.ok(out.endsWith('tail'));
 });
