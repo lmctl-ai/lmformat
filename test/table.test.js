@@ -144,6 +144,17 @@ test('measureColumns trims only egregious width outliers by default', () => {
   assert.equal(measureColumns([{ rows: [['a'], ['bb']], headers: ['a very wide header'] }])[0], 18);
 });
 
+test('margin indents every rendered line, empty output stays empty', () => {
+  assert.equal(formatTable([['a', 'bb'], ['long', 'x']], { margin: 2 }), '  a     bb\n  long  x');
+  assert.equal(formatTable([['a', 'bb'], ['long', 'x']], { margin: '> ' }), '> a     bb\n> long  x');
+  assert.equal(renderGrid([['a']], { widths: [1], margin: 4 }), '    a');
+  assert.equal(formatTable([], { margin: 2 }), '');
+  assert.equal(formatTable([], { headers: ['h'], margin: 2 }), '  h');
+  assert.throws(() => formatTable([['a']], { margin: -1 }), TypeError);
+  assert.throws(() => formatTable([['a']], { margin: 1.5 }), TypeError);
+  assert.throws(() => formatTable([['a']], { margin: 'x\ny' }), TypeError);
+});
+
 test('over-width outlier cells render truncated with an ellipsis', () => {
   // The giant cell sits MID-row (a trailing cell is open-ended by design).
   const rows = [

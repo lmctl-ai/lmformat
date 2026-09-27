@@ -151,25 +151,33 @@ function measureColumns(grids, { trimOutliers = true } = {}) {
 
 exports.measureColumns = measureColumns;
 
+function normalizeMargin(margin) {
+  if (margin === undefined) return '';
+  if (typeof margin === 'number' && Number.isInteger(margin) && margin >= 0) return ' '.repeat(margin);
+  if (typeof margin === 'string' && !/[\x00-\x1f\x7f-\x9f]/u.test(margin)) return margin;
+  throw new TypeError('margin must be a number of spaces or a single-line string');
+}
+
 /** Render rows with explicit column widths (from measureColumns). Non-trailing
  * cells wider than their column are truncated with an ellipsis so the grid
  * stays aligned (pass { truncate: false } to let them overflow); trailing
  * cells are never padded or truncated, so an open-ended last column renders
  * in full. Omitted widths measure the given rows alone (equivalent to
- * formatTable). */
-function renderGrid(rows, { widths, headers, align, truncate = true } = {}) {
+ * formatTable). `margin` (spaces count or string) indents every line. */
+function renderGrid(rows, { widths, headers, align, truncate = true, margin } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
   if (widths !== undefined && !Array.isArray(widths)) {
     throw new TypeError('widths must be an array of column widths');
   }
+  const indent = normalizeMargin(margin);
   const alignment = normalizeAlign(align);
   const columns = widths ?? measureColumns([{ rows, headers }], { trimOutliers: truncate });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
 
-  return table.map((row) => {
+  const body = table.map((row) => {
     // Omit absent trailing cells, but preserve padding before later populated cells.
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
@@ -180,18 +188,20 @@ function renderGrid(rows, { widths, headers, align, truncate = true } = {}) {
       return column === last ? fitted : padDisplay(fitted, width, false);
     }).join('  ');
   }).join('\n');
+  if (body === '' || indent === '') return body;
+  return `${indent}${body.split('\n').join(`\n${indent}`)}`;
 }
 
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align, truncate } = {}) {
-  return renderGrid(rows, { headers, align, truncate });
+function formatTable(rows, { headers, align, truncate, margin } = {}) {
+  return renderGrid(rows, { headers, align, truncate, margin });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, truncate, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align, truncate });
+function printTable(rows, { headers, align, truncate, margin, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate, margin });
   if (output) stream.write(`${output}\n`);
 }
 

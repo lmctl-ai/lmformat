@@ -49,22 +49,24 @@ const idle = [
 ];
 
 const widths = measureColumns([running, idle]); // one width set across all grids
-console.log(renderGrid(running, { widths }));
-console.log(renderGrid(idle, { widths }));
+console.log(renderGrid(running, { widths, margin: 2 }));
+console.log(renderGrid(idle, { widths, margin: 2 }));
 ```
 
 ```text
-math.lmctl:Lead      exec  running 16h ago
-triage.lmctl:Triage  chat  ran 24s, idle 5m ago
-or.lmctl:Lead        chat  ran 5s, idle 6m ago
+  math.lmctl:Lead      exec  running 16h ago
+  triage.lmctl:Triage  chat  ran 24s, idle 5m ago
+  or.lmctl:Lead        chat  ran 5s, idle 6m ago
 ```
 
 `measureColumns(grids)` takes an array of grids; a grid is a rows array or
 `{ rows, headers }`. It returns the display width of each column across all
-grids. `renderGrid(rows, { widths, headers, align }?)` renders one grid with
-explicit widths; a non-trailing cell wider than its width is truncated with an
-ellipsis (pass `truncate: false` to let it overflow). Trailing cells are never
-truncated — the last populated column is open-ended by design.
+grids. `renderGrid(rows, { widths, headers, align, margin }?)` renders one grid
+with explicit widths; a non-trailing cell wider than its width is truncated
+with an ellipsis (pass `truncate: false` to let it overflow). Trailing cells
+are never truncated — the last populated column is open-ended by design.
+`margin` (a number of spaces or a string) indents every rendered line, so
+section grids can sit under their headings without caller-side prefixing.
 Omitting `widths` makes `renderGrid` measure its own rows — exactly what
 `formatTable` does. Measure globally and render per section, or measure per
 section — the caller chooses.

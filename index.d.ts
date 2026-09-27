@@ -6,6 +6,8 @@ export interface TableOptions {
   align?: ColumnAlign[];
   /** Truncate over-width non-trailing cells with an ellipsis (default true). */
   truncate?: boolean;
+  /** Leading indent for every line: a number of spaces or a string. */
+  margin?: number | string;
 }
 
 export interface Grid {
