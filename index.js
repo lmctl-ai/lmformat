@@ -311,6 +311,21 @@ function formatPercent(fraction) {
 
 exports.formatPercent = formatPercent;
 
+/** ASCII progress bar for a fraction: 0.12 -> "[#---------]".
+ * Non-finite input fills with "?". */
+function formatBar(fraction, { width = 10 } = {}) {
+  if (typeof width !== 'number' || !Number.isInteger(width) || width < 1) {
+    throw new TypeError('width must be a positive integer');
+  }
+  if (typeof fraction !== 'number' || !Number.isFinite(fraction)) {
+    return `[${'?'.repeat(width)}]`;
+  }
+  const filled = Math.min(width, Math.max(0, Math.round(fraction * width)));
+  return `[${'#'.repeat(filled)}${'-'.repeat(width - filled)}]`;
+}
+
+exports.formatBar = formatBar;
+
 /** Escape terminal control characters so untrusted text survives formatTable. */
 function escapeCell(value) {
   const text = value == null ? '' : String(value);

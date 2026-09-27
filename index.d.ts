@@ -43,4 +43,5 @@ export function formatDuration(milliseconds: number | null | undefined, options?
 export function formatClock(value?: TimestampInput): string;
 export function formatLocalTimestamp(value?: TimestampInput): string;
 export function formatPercent(fraction: number | null | undefined): string;
+export function formatBar(fraction: number | null | undefined, options?: { width?: number }): string;
 export function escapeCell(value: unknown): string;

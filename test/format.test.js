@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  formatBar,
   formatCount,
   formatDuration,
   formatClock,
@@ -80,6 +81,21 @@ test('formatLocalTimestamp renders local YYYY-MM-DD HH:MM:SS', () => {
   const date = new Date(2026, 0, 2, 9, 5, 3);
   assert.equal(formatLocalTimestamp(date), '2026-01-02 09:05:03');
   assert.equal(formatLocalTimestamp('not a date'), 'unknown');
+});
+
+test('formatBar renders an ASCII progress bar', () => {
+  assert.equal(formatBar(0), '[----------]');
+  assert.equal(formatBar(0.12), '[#---------]');
+  assert.equal(formatBar(0.5), '[#####-----]');
+  assert.equal(formatBar(1), '[##########]');
+  assert.equal(formatBar(0.16, { width: 5 }), '[#----]');
+  // Out-of-range clamps; non-finite fills with '?'.
+  assert.equal(formatBar(1.4), '[##########]');
+  assert.equal(formatBar(-0.2), '[----------]');
+  for (const value of [null, undefined, NaN, Infinity]) {
+    assert.equal(formatBar(value), '[??????????]');
+  }
+  assert.throws(() => formatBar(0.5, { width: 0 }), TypeError);
 });
 
 test('escapeCell makes untrusted text safe for table cells', () => {
