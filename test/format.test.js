@@ -43,12 +43,15 @@ test('formatDuration renders up to two units', () => {
   assert.equal(formatDuration(7_500_000), '2h 5m');
   assert.equal(formatDuration(3_600_000), '1h');
   assert.equal(formatDuration(356_400_000), '4d 3h');
+  assert.equal(formatDuration(777_600_000), '1w 2d');
+  assert.equal(formatDuration(604_800_000), '1w');
 });
 
 test('formatDuration keeps exact unit boundaries single-unit', () => {
   assert.equal(formatDuration(60_000), '1m');
   assert.equal(formatDuration(3_600_000), '1h');
   assert.equal(formatDuration(86_400_000), '1d');
+  assert.equal(formatDuration(604_800_000), '1w');
 });
 
 test('formatDuration clamps negatives and reports unknown for non-finite input', () => {

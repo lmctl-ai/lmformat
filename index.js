@@ -26,6 +26,53 @@ function normalizeAlign(align) {
   });
 }
 
+/** Approximate terminal display width (zero-dependency wcwidth): combining
+ * marks and zero-width characters add nothing; East Asian wide/fullwidth
+ * code points and most emoji count double. Close enough for column
+ * alignment; not a full UAX #11 implementation. */
+function displayWidth(text) {
+  let width = 0;
+  for (const char of text) {
+    const cp = char.codePointAt(0);
+    if (
+      (cp >= 0x0300 && cp <= 0x036f) ||   // combining diacritical marks
+      (cp >= 0x1ab0 && cp <= 0x1aff) ||   // combining diacriticals extended
+      (cp >= 0x1dc0 && cp <= 0x1dff) ||   // combining diacriticals supplement
+      (cp >= 0x20d0 && cp <= 0x20ff) ||   // combining marks for symbols
+      (cp >= 0xfe00 && cp <= 0xfe0f) ||   // variation selectors
+      (cp >= 0xfe20 && cp <= 0xfe2f) ||   // combining half marks
+      cp === 0x200b ||                    // zero-width space
+      (cp >= 0xe0100 && cp <= 0xe01ef)    // variation selectors supplement
+    ) continue;
+    if (
+      (cp >= 0x1100 && cp <= 0x115f) ||   // Hangul Jamo
+      (cp >= 0x2e80 && cp <= 0x303e) ||   // CJK radicals, Kangxi, ideographic
+      (cp >= 0x3041 && cp <= 0x33ff) ||   // Hiragana, Katakana, CJK compatibility
+      (cp >= 0x3400 && cp <= 0x4dbf) ||   // CJK extension A
+      (cp >= 0x4e00 && cp <= 0x9fff) ||   // CJK unified ideographs
+      (cp >= 0xa000 && cp <= 0xa4cf) ||   // Yi
+      (cp >= 0xac00 && cp <= 0xd7a3) ||   // Hangul syllables
+      (cp >= 0xf900 && cp <= 0xfaff) ||   // CJK compatibility ideographs
+      (cp >= 0xfe30 && cp <= 0xfe6f) ||   // CJK compatibility forms
+      (cp >= 0xff00 && cp <= 0xff60) ||   // fullwidth forms
+      (cp >= 0xffe0 && cp <= 0xffe6) ||   // fullwidth signs
+      (cp >= 0x2600 && cp <= 0x27bf) ||   // misc symbols + dingbats
+      (cp >= 0x1f000 && cp <= 0x1faff) || // emoji (incl. transport, supplemental)
+      (cp >= 0x20000 && cp <= 0x3fffd)    // CJK extensions B+
+    ) {
+      width += 2;
+      continue;
+    }
+    width += 1;
+  }
+  return width;
+}
+
+function padDisplay(cell, width, right) {
+  const padding = ' '.repeat(Math.max(0, width - displayWidth(cell)));
+  return right ? padding + cell : cell + padding;
+}
+
 /** Format rows using the widest cell in each column, with two spaces between columns. */
 function formatTable(rows, { headers, align } = {}) {
   if (!Array.isArray(rows)) {
@@ -38,7 +85,7 @@ function formatTable(rows, { headers, align } = {}) {
   const widths = [];
   for (const row of table) {
     row.forEach((cell, column) => {
-      widths[column] = Math.max(widths[column] || 0, cell.length);
+      widths[column] = Math.max(widths[column] || 0, displayWidth(cell));
     });
   }
 
@@ -47,8 +94,8 @@ function formatTable(rows, { headers, align } = {}) {
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
     return row.slice(0, last + 1).map((cell, column) => {
-      if (alignment[column] === 'right') return cell.padStart(widths[column]);
-      return column === last ? cell : cell.padEnd(widths[column]);
+      if (alignment[column] === 'right') return padDisplay(cell, widths[column], true);
+      return column === last ? cell : padDisplay(cell, widths[column], false);
     }).join('  ');
   }).join('\n');
 }
@@ -79,7 +126,7 @@ function formatRelativeTime(value, { now = Date.now() } = {}) {
   const difference = target - reference;
   const seconds = Math.floor(Math.abs(difference) / 1000);
   if (seconds === 0) return 'now';
-  for (const [unit, size] of [['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
+  for (const [unit, size] of [['w', 604800], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
     if (seconds >= size) {
       return `${Math.floor(seconds / size)}${unit}${difference < 0 ? ' ago' : ''}`;
     }
@@ -102,12 +149,12 @@ function formatCount(value) {
 
 exports.formatCount = formatCount;
 
-/** Elapsed duration with up to two units: 45s, 3m 12s, 2h 5m, 4d 3h. */
+/** Elapsed duration with up to two units: 45s, 3m 12s, 2h 5m, 1w 2d. */
 function formatDuration(milliseconds) {
   if (typeof milliseconds !== 'number' || !Number.isFinite(milliseconds)) return 'unknown';
   let seconds = Math.floor(Math.max(0, milliseconds) / 1000);
   const parts = [];
-  for (const [unit, size] of [['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
+  for (const [unit, size] of [['w', 604800], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
     if (seconds >= size || (unit === 's' && parts.length === 0)) {
       const amount = Math.floor(seconds / size);
       seconds -= amount * size;

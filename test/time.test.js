@@ -10,7 +10,8 @@ test('uses the largest whole unit with deterministic boundary rounding', () => {
   for (const [seconds, expected] of [
     [0, 'now'], [0.999, 'now'], [1, '1s'], [59, '59s'], [60, '1m'],
     [2400, '40m'], [3599, '59m'], [3600, '1h'], [46800, '13h'],
-    [86399, '23h'], [86400, '1d'], [259200, '3d'], [31536000, '365d'],
+    [86399, '23h'], [86400, '1d'], [259200, '3d'], [604799, '6d'],
+    [604800, '1w'], [4_377_600, '7w'], [31536000, '52w'],
   ]) {
     assert.equal(formatRelativeTime(now + seconds * 1000, { now }), expected);
     if (seconds >= 1) assert.equal(formatRelativeTime(now - seconds * 1000, { now }), `${expected} ago`);

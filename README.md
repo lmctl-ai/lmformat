@@ -40,9 +40,11 @@ two-space gap. Trailing empty cells add no padding. Ragged rows are accepted;
 `String(value)`. Inputs are not modified and long text is never truncated or wrapped.
 
 Cells must be plain single-line text: tabs, newlines, ANSI escape sequences, and
-other terminal control characters are rejected. Widths use JavaScript string
-length, suitable for ASCII and the supplied session data. Wide Unicode characters,
-emoji, and combining marks may not align by terminal display width. A terminal
+other terminal control characters are rejected (use `escapeCell` to sanitize
+untrusted text first). Widths are terminal display widths: East Asian
+wide/fullwidth characters and most emoji count double, combining marks and
+zero-width characters count zero (a pragmatic zero-dependency approximation,
+not a full UAX #11 implementation). A terminal
 narrower than the output may wrap lines.
 
 Requires Node.js 18 or newer. Run `npm test` for alignment tests, `npm run check`
@@ -65,8 +67,9 @@ printTable([
 
 `formatRelativeTime(timestamp, { now }?)` accepts a Date, an epoch timestamp in
 milliseconds, or a date string accepted by `Date.parse`. Prefer ISO 8601 strings
-with an explicit timezone. It returns the largest whole unit (`d`, `h`, `m`, `s`),
-rounding down: 2 days and 20 hours becomes `2d`. Days mean 24 hours.
+with an explicit timezone. It returns the largest whole unit (`w`, `d`, `h`,
+`m`, `s`), rounding down: 2 days and 20 hours becomes `2d`. Days mean 24 hours;
+weeks mean 7 days.
 Future timestamps return `3d`; past timestamps return `3d ago`; differences below
 one second return `now`. Missing or invalid timestamps return `unknown`.
 An invalid explicit `now` throws a TypeError. Capture `now` once when formatting
@@ -86,7 +89,7 @@ const {
 } = require('@lmctl-ai/lmformat');
 
 formatCount(960_462);        // "960K"   (>= 1M keeps one decimal: "15.8M")
-formatDuration(7_500_000);   // "2h 5m"  (up to two units: "3m 12s", "45s")
+formatDuration(7_500_000);   // "2h 5m"  (up to two units: "3m 12s", "1w 2d")
 formatPercent(0.16);         // "16%"
 formatClock();               // "09:05:03"          local wall clock, now or given time
 formatLocalTimestamp();      // "2026-01-02 09:05:03"  local date and time

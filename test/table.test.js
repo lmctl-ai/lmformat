@@ -85,3 +85,15 @@ test('align defaults to left and rejects unknown entries', () => {
   assert.throws(() => formatTable([['a']], { align: 'right' }), TypeError);
   assert.throws(() => formatTable([['a']], { align: ['center'] }), TypeError);
 });
+
+test('aligns by terminal display width: CJK, emoji, combining marks', () => {
+  // '名字' is 2+2 display columns (4), 'ab' is 2 — 'ab' gets 2 padding spaces.
+  assert.equal(formatTable([['名字', 'x'], ['ab', 'y']]), '名字  x\nab    y');
+  // Emoji count double; the ASCII row pads to the same display column.
+  assert.equal(formatTable([['🚀', 1], ['ab', 2]]), '🚀  1\nab  2');
+  // Combining marks add no width: 'é' (e + U+0301) measures as 1 column.
+  assert.equal(formatTable([['é', 'z'], ['bc', 'q']]), 'é   z\nbc  q');
+  // Width-aware padding composes with right alignment.
+  assert.equal(formatTable([['名字', 1], ['ab', 22]], { align: ['left', 'right'] }),
+    '名字   1\nab    22');
+});
