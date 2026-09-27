@@ -84,14 +84,14 @@ test('formatLocalTimestamp renders local YYYY-MM-DD HH:MM:SS', () => {
 });
 
 test('formatBar renders an ASCII progress bar', () => {
-  assert.equal(formatBar(0), '[----------]');
-  assert.equal(formatBar(0.12), '[#---------]');
-  assert.equal(formatBar(0.5), '[#####-----]');
+  assert.equal(formatBar(0), '[          ]');
+  assert.equal(formatBar(0.12), '[#         ]');
+  assert.equal(formatBar(0.5), '[#####     ]');
   assert.equal(formatBar(1), '[##########]');
-  assert.equal(formatBar(0.16, { width: 5 }), '[#----]');
+  assert.equal(formatBar(0.16, { width: 5 }), '[#    ]');
   // Out-of-range clamps; non-finite fills with '?'.
   assert.equal(formatBar(1.4), '[##########]');
-  assert.equal(formatBar(-0.2), '[----------]');
+  assert.equal(formatBar(-0.2), '[          ]');
   for (const value of [null, undefined, NaN, Infinity]) {
     assert.equal(formatBar(value), '[??????????]');
   }

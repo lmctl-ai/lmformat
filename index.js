@@ -311,7 +311,8 @@ function formatPercent(fraction) {
 
 exports.formatPercent = formatPercent;
 
-/** ASCII progress bar for a fraction: 0.12 -> "[#---------]".
+/** ASCII progress bar for a fraction: 0.12 -> "[#         ]".
+ * The frame is brackets; fill is '#', remainder is blank (no clutter).
  * Non-finite input fills with "?". */
 function formatBar(fraction, { width = 10 } = {}) {
   if (typeof width !== 'number' || !Number.isInteger(width) || width < 1) {
@@ -321,7 +322,7 @@ function formatBar(fraction, { width = 10 } = {}) {
     return `[${'?'.repeat(width)}]`;
   }
   const filled = Math.min(width, Math.max(0, Math.round(fraction * width)));
-  return `[${'#'.repeat(filled)}${'-'.repeat(width - filled)}]`;
+  return `[${'#'.repeat(filled)}${' '.repeat(width - filled)}]`;
 }
 
 exports.formatBar = formatBar;

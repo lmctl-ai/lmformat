@@ -144,7 +144,7 @@ formatCount(960_462);        // "960K"   (>= 1M keeps one decimal: "15.8M")
 formatDuration(7_500_000);   // "2h 5m"  (up to two units: "3m 12s", "1w 2d")
 formatDuration(788_400_000, { maxUnit: 'd' });  // "9d 3h" (cap the largest unit)
 formatPercent(0.16);         // "16%"
-formatBar(0.16);             // "[##--------]"  (ASCII progress bar, 10 cells default)
+formatBar(0.16);             // "[##        ]"  (ASCII progress bar, 10 cells default)
 formatClock();               // "09:05:03"          local wall clock, now or given time
 formatLocalTimestamp();      // "2026-01-02 09:05:03"  local date and time
 ```
