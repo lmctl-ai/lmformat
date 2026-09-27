@@ -33,8 +33,15 @@ implements these; callers supply structure, the library owns formatting.
 - Durations and countdowns: **two units of precision** — `45s`, `3m 12s`,
   `2h 5m`, `2d 4h` (`formatDuration`). Cap the largest unit to the context
   (`maxUnit: 'd'` for rate-limit resets; weeks are fine for ages).
+  For watched countdowns, clock-style timers read even tighter:
+  `in 00:36:12`, `in 5d 18:24:33` (`formatTimer`).
 - Ages carry direction: `3d ago` (`formatRelativeTime`).
 - Percent from fractions: `16%`; non-finite input renders `?%`.
+- Progress is a **bare ASCII fill** (`###       `, `formatBar`) — no bracket
+  frame; the grid is the structure. Pace-matched pairs (usage vs window
+  elapsed) with equal fills mean "perfectly paced"; add a forecast column
+  for the delta (under pace: unused fair share as `%`; over pace: minutes
+  ahead as `+xxM`).
 - Absolute ISO timestamps and exact values belong in `--json`, not in
   human text.
 
