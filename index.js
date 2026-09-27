@@ -47,8 +47,8 @@ function formatTable(rows, { headers, align } = {}) {
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
     return row.slice(0, last + 1).map((cell, column) => {
-      if (column === last) return cell;
-      return alignment[column] === 'right' ? cell.padStart(widths[column]) : cell.padEnd(widths[column]);
+      if (alignment[column] === 'right') return cell.padStart(widths[column]);
+      return column === last ? cell : cell.padEnd(widths[column]);
     }).join('  ');
   }).join('\n');
 }
@@ -91,10 +91,13 @@ exports.formatRelativeTime = formatRelativeTime;
 /** Compact token/byte-style count: 960462 -> "960K", 15791104 -> "15.8M". */
 function formatCount(value) {
   if (typeof value !== 'number' || !Number.isFinite(value)) return 'unknown';
+  const sign = value < 0 ? '-' : '';
   const absolute = Math.abs(value);
-  if (absolute >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (absolute >= 1_000) return `${Math.round(value / 1_000)}K`;
-  return String(value);
+  if (absolute < 1_000) return String(value);
+  const thousands = Math.round(absolute / 1_000);
+  // Promote after rounding so 999_999 becomes "1.0M", not "1000K".
+  if (thousands < 1_000) return `${sign}${thousands}K`;
+  return `${sign}${(absolute / 1_000_000).toFixed(1)}M`;
 }
 
 exports.formatCount = formatCount;

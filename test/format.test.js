@@ -17,7 +17,14 @@ test('formatCount compacts thousands and millions', () => {
   assert.equal(formatCount(960_462), '960K');
   assert.equal(formatCount(1_500_000), '1.5M');
   assert.equal(formatCount(15_791_104), '15.8M');
-  assert.equal(formatCount(-2_500), '-2K');
+});
+
+test('formatCount rounds symmetrically and promotes units after rounding', () => {
+  assert.equal(formatCount(-2_500), '-3K');
+  assert.equal(formatCount(999_499), '999K');
+  assert.equal(formatCount(999_500), '1.0M');
+  assert.equal(formatCount(999_999), '1.0M');
+  assert.equal(formatCount(1_000_000), '1.0M');
 });
 
 test('formatCount reports unknown for missing or non-finite input', () => {

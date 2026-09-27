@@ -69,8 +69,15 @@ test('right-aligns columns marked in align, headers included', () => {
   assert.equal(
     formatTable([['triage.lmctl', 5, '25s'], ['math.lmctl', 120, '2s']],
       { headers: ['team', 'msgs', 'time'], align: ['left', 'right', 'right'] }),
-    'team          msgs  time\ntriage.lmctl     5  25s\nmath.lmctl     120  2s',
+    'team          msgs  time\ntriage.lmctl     5   25s\nmath.lmctl     120    2s',
   );
+});
+
+test('right-aligns the last populated cell and single-column tables', () => {
+  assert.equal(formatTable([['count'], ['1'], ['100']], { align: ['right'] }),
+    'count\n    1\n  100');
+  // Left-aligned trailing cells still get no padding.
+  assert.equal(formatTable([['h'], ['a'], ['bb']]), 'h\na\nbb');
 });
 
 test('align defaults to left and rejects unknown entries', () => {

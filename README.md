@@ -92,7 +92,9 @@ formatClock();               // "09:05:03"          local wall clock, now or giv
 formatLocalTimestamp();      // "2026-01-02 09:05:03"  local date and time
 ```
 
-`formatCount` accepts a finite number and returns `unknown` otherwise.
+`formatCount` accepts a finite number and returns `unknown` otherwise. It rounds
+symmetrically for negative values and promotes units after rounding, so
+`999_999` becomes `"1.0M"` rather than `"1000K"`.
 `formatDuration` takes milliseconds, clamps negatives to `0s`, and returns
 `unknown` for non-finite input. `formatPercent` takes a fraction (`0.16` for 16%)
 and returns `?%` for non-finite input. `formatClock` and `formatLocalTimestamp`
