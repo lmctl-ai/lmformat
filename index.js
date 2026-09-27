@@ -248,12 +248,18 @@ function formatCount(value) {
 
 exports.formatCount = formatCount;
 
-/** Elapsed duration with up to two units: 45s, 3m 12s, 2h 5m, 1w 2d. */
-function formatDuration(milliseconds) {
+const DURATION_UNITS = [['w', 604800], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]];
+
+/** Elapsed duration with up to two units: 45s, 3m 12s, 2h 5m, 1w 2d.
+ * `maxUnit` ('w' default, or 'd'/'h'/'m'/'s') caps the largest unit — e.g.
+ * 'd' renders 9 days as "9d 4h" instead of "1w 2d". */
+function formatDuration(milliseconds, { maxUnit = 'w' } = {}) {
   if (typeof milliseconds !== 'number' || !Number.isFinite(milliseconds)) return 'unknown';
+  const start = DURATION_UNITS.findIndex(([unit]) => unit === maxUnit);
+  if (start === -1) throw new TypeError('maxUnit must be one of "w", "d", "h", "m", "s"');
   let seconds = Math.floor(Math.max(0, milliseconds) / 1000);
   const parts = [];
-  for (const [unit, size] of [['w', 604800], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]]) {
+  for (const [unit, size] of DURATION_UNITS.slice(start)) {
     if (seconds >= size || (unit === 's' && parts.length === 0)) {
       const amount = Math.floor(seconds / size);
       seconds -= amount * size;

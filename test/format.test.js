@@ -54,6 +54,14 @@ test('formatDuration keeps exact unit boundaries single-unit', () => {
   assert.equal(formatDuration(604_800_000), '1w');
 });
 
+test('formatDuration honors maxUnit', () => {
+  assert.equal(formatDuration(777_600_000, { maxUnit: 'd' }), '9d');
+  assert.equal(formatDuration(788_400_000, { maxUnit: 'd' }), '9d 3h');
+  assert.equal(formatDuration(356_400_000, { maxUnit: 'h' }), '99h');
+  assert.equal(formatDuration(192_000, { maxUnit: 'm' }), '3m 12s');
+  assert.throws(() => formatDuration(1000, { maxUnit: 'y' }), TypeError);
+});
+
 test('formatDuration clamps negatives and reports unknown for non-finite input', () => {
   assert.equal(formatDuration(-5_000), '0s');
   for (const value of [null, undefined, NaN, Infinity]) {
