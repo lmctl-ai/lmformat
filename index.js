@@ -311,21 +311,37 @@ function formatPercent(fraction) {
 
 exports.formatPercent = formatPercent;
 
-/** ASCII progress bar for a fraction: 0.12 -> "[#         ]".
- * The frame is brackets; fill is '#', remainder is blank (no clutter).
- * Non-finite input fills with "?". */
+/** ASCII progress bar for a fraction: 0.12 -> "#         " (bare fill, no
+ * frame — the grid provides the structure). Non-finite input fills "?". */
 function formatBar(fraction, { width = 10 } = {}) {
   if (typeof width !== 'number' || !Number.isInteger(width) || width < 1) {
     throw new TypeError('width must be a positive integer');
   }
   if (typeof fraction !== 'number' || !Number.isFinite(fraction)) {
-    return `[${'?'.repeat(width)}]`;
+    return '?'.repeat(width);
   }
   const filled = Math.min(width, Math.max(0, Math.round(fraction * width)));
-  return `[${'#'.repeat(filled)}${' '.repeat(width - filled)}]`;
+  return `${'#'.repeat(filled)}${' '.repeat(width - filled)}`;
 }
 
 exports.formatBar = formatBar;
+
+/** Clock-style remaining time: "00:36:12", days-prefixed past 24h
+ * ("5d 18:24:33"). Floors to whole seconds. */
+function formatTimer(milliseconds) {
+  if (typeof milliseconds !== 'number' || !Number.isFinite(milliseconds)) return 'unknown';
+  let seconds = Math.floor(Math.max(0, milliseconds) / 1000);
+  const days = Math.floor(seconds / 86400);
+  seconds -= days * 86400;
+  const hours = Math.floor(seconds / 3600);
+  seconds -= hours * 3600;
+  const minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+  const clock = `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+  return days > 0 ? `${days}d ${clock}` : clock;
+}
+
+exports.formatTimer = formatTimer;
 
 /** Escape terminal control characters so untrusted text survives formatTable. */
 function escapeCell(value) {

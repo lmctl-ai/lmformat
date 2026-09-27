@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   formatBar,
+  formatTimer,
   formatCount,
   formatDuration,
   formatClock,
@@ -83,19 +84,32 @@ test('formatLocalTimestamp renders local YYYY-MM-DD HH:MM:SS', () => {
   assert.equal(formatLocalTimestamp('not a date'), 'unknown');
 });
 
-test('formatBar renders an ASCII progress bar', () => {
-  assert.equal(formatBar(0), '[          ]');
-  assert.equal(formatBar(0.12), '[#         ]');
-  assert.equal(formatBar(0.5), '[#####     ]');
-  assert.equal(formatBar(1), '[##########]');
-  assert.equal(formatBar(0.16, { width: 5 }), '[#    ]');
+test('formatBar renders a bare ASCII progress fill', () => {
+  assert.equal(formatBar(0), '          ');
+  assert.equal(formatBar(0.12), '#         ');
+  assert.equal(formatBar(0.5), '#####     ');
+  assert.equal(formatBar(1), '##########');
+  assert.equal(formatBar(0.16, { width: 5 }), '#    ');
   // Out-of-range clamps; non-finite fills with '?'.
-  assert.equal(formatBar(1.4), '[##########]');
-  assert.equal(formatBar(-0.2), '[          ]');
+  assert.equal(formatBar(1.4), '##########');
+  assert.equal(formatBar(-0.2), '          ');
   for (const value of [null, undefined, NaN, Infinity]) {
-    assert.equal(formatBar(value), '[??????????]');
+    assert.equal(formatBar(value), '??????????');
   }
   assert.throws(() => formatBar(0.5, { width: 0 }), TypeError);
+});
+
+test('formatTimer renders clock-style remaining time', () => {
+  assert.equal(formatTimer(0), '00:00:00');
+  assert.equal(formatTimer(45_000), '00:00:45');
+  assert.equal(formatTimer(2_172_000), '00:36:12');
+  assert.equal(formatTimer(192_000), '00:03:12');
+  assert.equal(formatTimer(7_500_000), '02:05:00');
+  assert.equal(formatTimer(493_200_000), '5d 17:00:00');
+  assert.equal(formatTimer(-5_000), '00:00:00');
+  for (const value of [null, undefined, NaN, Infinity]) {
+    assert.equal(formatTimer(value), 'unknown');
+  }
 });
 
 test('escapeCell makes untrusted text safe for table cells', () => {
