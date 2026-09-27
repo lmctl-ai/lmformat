@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { formatTable, printTable } = require('..');
+const { formatTable, measureColumns, printTable, renderGrid } = require('..');
 const { headers, rows } = require('../examples/sessions');
 
 test('sizes from all rows and left-aligns every column', () => {
@@ -96,4 +96,29 @@ test('aligns by terminal display width: CJK, emoji, combining marks', () => {
   // Width-aware padding composes with right alignment.
   assert.equal(formatTable([['名字', 1], ['ab', 22]], { align: ['left', 'right'] }),
     '名字   1\nab    22');
+});
+
+test('measureColumns + renderGrid align separate tables on one shared grid', () => {
+  const running = [['math.lmctl:Lead', 'exec', 'running 16h ago']];
+  const idle = [['triage.lmctl:Triage', 'chat', 'ran 24s, idle 5m ago'], ['or.lmctl:Lead', 'chat', 'ran 5s, idle 6m ago']];
+  const widths = measureColumns([running, idle]);
+  assert.deepEqual(widths, [19, 4, 20]);
+  assert.equal(renderGrid(running, { widths }), 'math.lmctl:Lead      exec  running 16h ago');
+  assert.equal(renderGrid(idle, { widths }),
+    'triage.lmctl:Triage  chat  ran 24s, idle 5m ago\nor.lmctl:Lead        chat  ran 5s, idle 6m ago');
+});
+
+test('measureColumns honors grid headers and bare rows arrays', () => {
+  assert.deepEqual(measureColumns([[['aa']]]), [2]);
+  assert.deepEqual(measureColumns([{ rows: [['aa']], headers: ['header'] }]), [6]);
+  assert.deepEqual(measureColumns([]), []);
+  assert.throws(() => measureColumns('x'), TypeError);
+  assert.throws(() => measureColumns([{ rows: 'x' }]), TypeError);
+});
+
+test('renderGrid without widths measures its own rows; short widths overflow', () => {
+  assert.equal(renderGrid([['a', 'bb'], ['long', 'x']]), 'a     bb\nlong  x');
+  // A width narrower than the cell lets the cell overflow (no truncation).
+  assert.equal(renderGrid([['long', 'x']], { widths: [2, 1] }), 'long  x');
+  assert.throws(() => renderGrid([['a']], { widths: 'wide' }), TypeError);
 });

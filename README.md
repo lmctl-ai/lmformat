@@ -33,6 +33,40 @@ Headers are optional. You can also include a header as the first row.
 `align` optionally sets each column to `'left'` (default) or `'right'`;
 numeric columns read best right-aligned. Headers follow their column's alignment.
 
+## Measuring and rendering separately
+
+`formatTable` measures and renders in one step. To align SEVERAL tables on one
+shared grid — for example per-section tables under standalone headings — split
+the two steps:
+
+```js
+const { measureColumns, renderGrid } = require('@lmctl-ai/lmformat');
+
+const running = [['math.lmctl:Lead', 'exec', 'running 16h ago']];
+const idle = [
+  ['triage.lmctl:Triage', 'chat', 'ran 24s, idle 5m ago'],
+  ['or.lmctl:Lead', 'chat', 'ran 5s, idle 6m ago'],
+];
+
+const widths = measureColumns([running, idle]); // one width set across all grids
+console.log(renderGrid(running, { widths }));
+console.log(renderGrid(idle, { widths }));
+```
+
+```text
+math.lmctl:Lead      exec  running 16h ago
+triage.lmctl:Triage  chat  ran 24s, idle 5m ago
+or.lmctl:Lead        chat  ran 5s, idle 6m ago
+```
+
+`measureColumns(grids)` takes an array of grids; a grid is a rows array or
+`{ rows, headers }`. It returns the display width of each column across all
+grids. `renderGrid(rows, { widths, headers, align }?)` renders one grid with
+explicit widths; a cell longer than its width overflows (never truncated).
+Omitting `widths` makes `renderGrid` measure its own rows — exactly what
+`formatTable` does. Measure globally and render per section, or measure per
+section — the caller chooses.
+
 All rows are loaded before formatting. Each column takes the maximum cell length
 across headers and data; cells are right-padded with spaces and columns have a
 two-space gap. Trailing empty cells add no padding. Ragged rows are accepted;

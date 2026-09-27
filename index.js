@@ -73,31 +73,65 @@ function padDisplay(cell, width, right) {
   return right ? padding + cell : cell + padding;
 }
 
-/** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align } = {}) {
+function normalizeGrid(grid) {
+  if (Array.isArray(grid)) return { rows: grid };
+  if (grid !== null && typeof grid === 'object' && Array.isArray(grid.rows)) return grid;
+  throw new TypeError('each grid must be a rows array or { rows, headers }');
+}
+
+/** Measure column display widths across one or more grids. Pair with
+ * renderGrid to align several tables on one shared grid. */
+function measureColumns(grids) {
+  if (!Array.isArray(grids)) {
+    throw new TypeError('grids must be an array of grids');
+  }
+  const widths = [];
+  for (const input of grids) {
+    const grid = normalizeGrid(input);
+    const rows = grid.rows.map(normalizeRow);
+    if (grid.headers !== undefined) rows.unshift(normalizeRow(grid.headers));
+    for (const row of rows) {
+      row.forEach((cell, column) => {
+        widths[column] = Math.max(widths[column] || 0, displayWidth(cell));
+      });
+    }
+  }
+  return widths;
+}
+
+exports.measureColumns = measureColumns;
+
+/** Render rows with explicit column widths (from measureColumns). Widths
+ * shorter than a cell simply let the cell overflow; omitted widths measure
+ * the given rows alone (equivalent to formatTable). */
+function renderGrid(rows, { widths, headers, align } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
+  if (widths !== undefined && !Array.isArray(widths)) {
+    throw new TypeError('widths must be an array of column widths');
+  }
   const alignment = normalizeAlign(align);
+  const columns = widths ?? measureColumns([{ rows, headers }]);
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
-
-  const widths = [];
-  for (const row of table) {
-    row.forEach((cell, column) => {
-      widths[column] = Math.max(widths[column] || 0, displayWidth(cell));
-    });
-  }
 
   return table.map((row) => {
     // Omit absent trailing cells, but preserve padding before later populated cells.
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
     return row.slice(0, last + 1).map((cell, column) => {
-      if (alignment[column] === 'right') return padDisplay(cell, widths[column], true);
-      return column === last ? cell : padDisplay(cell, widths[column], false);
+      if (alignment[column] === 'right') return padDisplay(cell, columns[column] || 0, true);
+      return column === last ? cell : padDisplay(cell, columns[column] || 0, false);
     }).join('  ');
   }).join('\n');
+}
+
+exports.renderGrid = renderGrid;
+
+/** Format rows using the widest cell in each column, with two spaces between columns. */
+function formatTable(rows, { headers, align } = {}) {
+  return renderGrid(rows, { headers, align });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */

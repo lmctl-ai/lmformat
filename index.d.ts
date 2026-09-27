@@ -6,10 +6,21 @@ export interface TableOptions {
   align?: ColumnAlign[];
 }
 
+export interface Grid {
+  rows: TableCell[][];
+  headers?: TableCell[];
+}
+
+export interface RenderGridOptions extends TableOptions {
+  widths?: number[];
+}
+
 export interface PrintTableOptions extends TableOptions {
   stream?: { write(text: string): void };
 }
 
+export function measureColumns(grids: Array<Grid | TableCell[][]>): number[];
+export function renderGrid(rows: TableCell[][], options?: RenderGridOptions): string;
 export function formatTable(rows: TableCell[][], options?: TableOptions): string;
 export function printTable(rows: TableCell[][], options?: PrintTableOptions): void;
 
