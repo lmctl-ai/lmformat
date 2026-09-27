@@ -1,6 +1,7 @@
 # lmformat
 
-Dependency-free Node.js library for automatically sized, left-aligned CLI tables.
+Dependency-free Node.js library for CLI output formatting: automatically sized
+tables, compact counts, durations, and timestamps.
 Install with `npm install @lmctl-ai/lmformat`.
 
 Pass an array of rows; each row is an array of cells. No column widths are needed.
@@ -10,22 +11,27 @@ const { formatTable, printTable } = require('@lmctl-ai/lmformat');
 // ESM also supports: import { formatTable, printTable } from '@lmctl-ai/lmformat';
 
 const rows = [
-  ['triage.lmctl', 'Triage', 'done', '25s'],
-  ['math.lmctl', 'Lead', 'done', '2s'],
+  ['triage.lmctl', 'Triage', 'done', 5, '25s'],
+  ['math.lmctl', 'Lead', 'done', 120, '2s'],
 ];
-printTable(rows, { headers: ['team', 'alias', 'status', 'time spent'] });
+printTable(rows, {
+  headers: ['team', 'alias', 'status', 'msgs', 'time spent'],
+  align: ['left', 'left', 'left', 'right', 'right'],
+});
 ```
 
 ```text
-team          alias   status  time spent
-triage.lmctl  Triage  done    25s
-math.lmctl    Lead    done    2s
+team          alias   status  msgs  time spent
+triage.lmctl  Triage  done       5        25s
+math.lmctl    Lead   done     120         2s
 ```
 
-`formatTable(rows, { headers }?)` returns a string without a final newline.
-`printTable(rows, { headers, stream }?)` writes it with a final newline to
+`formatTable(rows, { headers, align }?)` returns a string without a final newline.
+`printTable(rows, { headers, align, stream }?)` writes it with a final newline to
 `process.stdout` or a supplied writable stream. Empty output writes nothing.
 Headers are optional. You can also include a header as the first row.
+`align` optionally sets each column to `'left'` (default) or `'right'`;
+numeric columns read best right-aligned. Headers follow their column's alignment.
 
 All rows are loaded before formatting. Each column takes the maximum cell length
 across headers and data; cells are right-padded with spaces and columns have a
@@ -71,6 +77,27 @@ including read ages, reset countdowns, credits, and exhausted status. This examp
 uses the fixed snapshot time `2026-09-25T20:33:47Z` for reproducible output.
 Transform timestamp cells before passing rows to the table formatter; widths
 are calculated from the resulting text automatically.
+
+## Counts, durations, and clocks
+
+```js
+const {
+  formatCount, formatDuration, formatPercent, formatClock, formatLocalTimestamp,
+} = require('@lmctl-ai/lmformat');
+
+formatCount(960_462);        // "960K"   (>= 1M keeps one decimal: "15.8M")
+formatDuration(7_500_000);   // "2h 5m"  (up to two units: "3m 12s", "45s")
+formatPercent(0.16);         // "16%"
+formatClock();               // "09:05:03"          local wall clock, now or given time
+formatLocalTimestamp();      // "2026-01-02 09:05:03"  local date and time
+```
+
+`formatCount` accepts a finite number and returns `unknown` otherwise.
+`formatDuration` takes milliseconds, clamps negatives to `0s`, and returns
+`unknown` for non-finite input. `formatPercent` takes a fraction (`0.16` for 16%)
+and returns `?%` for non-finite input. `formatClock` and `formatLocalTimestamp`
+accept a Date, epoch milliseconds, or a parseable date string (default: now),
+and return `unknown` for invalid input.
 
 MIT licensed. Project homepage: [lmctl.com](https://lmctl.com).
 

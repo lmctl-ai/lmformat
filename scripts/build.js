@@ -10,6 +10,6 @@ const [pack] = JSON.parse(execFileSync(process.execPath, [
   process.env.npm_execpath, 'pack', '--json', '--pack-destination', 'release',
 ], { encoding: 'utf8' }));
 assert.deepEqual(pack.files.map((file) => file.path).sort(), [
-  'LICENSE', 'README.md', 'index.js', 'package.json',
+  'LICENSE', 'README.md', 'index.d.ts', 'index.js', 'package.json',
 ]);
 console.log(`Built release/${pack.filename}`);

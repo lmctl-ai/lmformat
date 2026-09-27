@@ -64,3 +64,17 @@ test('rejects invalid row shapes and terminal control characters', () => {
     assert.throws(() => formatTable([[cell]]), /single-line/);
   }
 });
+
+test('right-aligns columns marked in align, headers included', () => {
+  assert.equal(
+    formatTable([['triage.lmctl', 5, '25s'], ['math.lmctl', 120, '2s']],
+      { headers: ['team', 'msgs', 'time'], align: ['left', 'right', 'right'] }),
+    'team          msgs  time\ntriage.lmctl     5  25s\nmath.lmctl     120  2s',
+  );
+});
+
+test('align defaults to left and rejects unknown entries', () => {
+  assert.equal(formatTable([[1, 2]], { align: [] }), '1  2');
+  assert.throws(() => formatTable([['a']], { align: 'right' }), TypeError);
+  assert.throws(() => formatTable([['a']], { align: ['center'] }), TypeError);
+});

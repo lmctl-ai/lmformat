@@ -1,18 +1,19 @@
 {
   "name": "@lmctl-ai/lmformat",
-  "version": "0.1.0",
-  "description": "Automatically sized, left-aligned tables for Node.js CLI output",
+  "version": "0.2.0",
+  "description": "Dependency-free CLI output formatting: auto-sized tables, compact counts, durations, and timestamps",
   "main": "index.js",
+  "types": "index.d.ts",
   "license": "MIT",
   "author": "Mike Ma <mike.ma@lmctl.com>",
   "homepage": "https://lmctl.com",
   "repository": { "type": "git", "url": "git+https://github.com/lmctl-ai/lmformat.git" },
-  "files": ["index.js"],
+  "files": ["index.js", "index.d.ts"],
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/" },
   "scripts": {
     "build": "npm run check && node scripts/build.js",
     "test": "node --test",
-    "check": "node --check index.js && node --check test/table.test.js && node --check test/time.test.js && node --check examples/sessions.js && node --check examples/ratelimit.js",
+    "check": "node --check index.js && node --check test/table.test.js && node --check test/time.test.js && node --check test/format.test.js && node --check examples/sessions.js && node --check examples/ratelimit.js",
     "example": "node examples/sessions.js",
     "example:ratelimit": "node examples/ratelimit.js"
   },
