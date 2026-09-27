@@ -158,3 +158,16 @@ function formatPercent(fraction) {
 }
 
 exports.formatPercent = formatPercent;
+
+/** Escape terminal control characters so untrusted text survives formatTable. */
+function escapeCell(value) {
+  const text = value == null ? '' : String(value);
+  return text.replace(/[\x00-\x1f\x7f-\x9f]/gu, (char) => {
+    if (char === '\n') return '\\n';
+    if (char === '\t') return '\\t';
+    if (char === '\r') return '\\r';
+    return `\\x${char.codePointAt(0).toString(16).padStart(2, '0')}`;
+  });
+}
+
+exports.escapeCell = escapeCell;

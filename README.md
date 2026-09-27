@@ -97,7 +97,8 @@ symmetrically for negative values and promotes units after rounding, so
 `999_999` becomes `"1.0M"` rather than `"1000K"`.
 `formatDuration` takes milliseconds, clamps negatives to `0s`, and returns
 `unknown` for non-finite input. `formatPercent` takes a fraction (`0.16` for 16%)
-and returns `?%` for non-finite input. `formatClock` and `formatLocalTimestamp`
+and returns `?%` for non-finite input — deliberately not `unknown`, since the
+inline `used ?% remaining ?%` context wants the unit suffix kept. `formatClock` and `formatLocalTimestamp`
 accept a Date, epoch milliseconds, or a parseable date string (default: now),
 and return `unknown` for invalid input.
 

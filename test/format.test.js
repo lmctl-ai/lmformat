@@ -8,6 +8,8 @@ const {
   formatClock,
   formatLocalTimestamp,
   formatPercent,
+  formatTable,
+  escapeCell,
 } = require('..');
 
 test('formatCount compacts thousands and millions', () => {
@@ -43,6 +45,12 @@ test('formatDuration renders up to two units', () => {
   assert.equal(formatDuration(356_400_000), '4d 3h');
 });
 
+test('formatDuration keeps exact unit boundaries single-unit', () => {
+  assert.equal(formatDuration(60_000), '1m');
+  assert.equal(formatDuration(3_600_000), '1h');
+  assert.equal(formatDuration(86_400_000), '1d');
+});
+
 test('formatDuration clamps negatives and reports unknown for non-finite input', () => {
   assert.equal(formatDuration(-5_000), '0s');
   for (const value of [null, undefined, NaN, Infinity]) {
@@ -61,6 +69,15 @@ test('formatLocalTimestamp renders local YYYY-MM-DD HH:MM:SS', () => {
   const date = new Date(2026, 0, 2, 9, 5, 3);
   assert.equal(formatLocalTimestamp(date), '2026-01-02 09:05:03');
   assert.equal(formatLocalTimestamp('not a date'), 'unknown');
+});
+
+test('escapeCell makes untrusted text safe for table cells', () => {
+  assert.equal(escapeCell('plain'), 'plain');
+  assert.equal(escapeCell('a\nb\tc\rd'), 'a\\nb\\tc\\rd');
+  assert.equal(escapeCell('a\x1b[31m'), 'a\\x1b[31m');
+  assert.equal(escapeCell(null), '');
+  assert.equal(escapeCell(42), '42');
+  assert.doesNotThrow(() => formatTable([[escapeCell('x\ny')]]));
 });
 
 test('formatPercent rounds fractions and tolerates bad input', () => {
