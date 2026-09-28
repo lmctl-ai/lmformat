@@ -66,7 +66,7 @@ per-column caps, `null`/`undefined` entries uncapped) to bound chosen columns.
 `renderGrid(rows, { widths, headers, align, margin }?)` renders one grid
 with explicit widths; a non-trailing cell wider than its width is truncated
 with an ellipsis (pass `truncate: false` to let it overflow). Trailing cells
-are never truncated — the last populated column is open-ended by design.
+are open-ended by default; `truncateTrailing: true` bounds them as well.
 `margin` (a number of spaces or a string) indents every rendered line, so
 section grids can sit under their headings without caller-side prefixing.
 Omitting `widths` makes `renderGrid` measure its own rows — exactly what
@@ -80,8 +80,9 @@ right-padded with spaces and columns have a
 two-space gap. Trailing empty cells add no padding. Ragged rows are accepted;
 `null`, `undefined`, and missing cells become empty strings. Other values use
 `String(value)`. Inputs are not modified. Long text is never wrapped; cells
-over their column's width (measured or capped) are truncated with an ellipsis
-unless `truncate: false`.
+over their column's width (measured or capped) are truncated with an ellipsis,
+except trailing cells unless `truncateTrailing: true`. `truncate: false`
+disables all truncation.
 
 ## Column widths and caps (manual, per call)
 
@@ -92,7 +93,7 @@ width, say so: `measureColumns(grids, { max: [26, null, 20] })` caps column 0
 at 26 and column 2 at 20, leaving column 1 uncapped. Caps also work through
 `renderGrid`/`formatTable`/`printTable` when they self-measure. A cap smaller
 than the header caps the header too (you own both); a cap on the trailing
-column has no visible effect, since trailing cells are open-ended. When
+column takes effect only with `truncateTrailing: true`. When
 rendering, a non-trailing cell wider than its column is truncated to the
 width with a trailing `…`; pass `truncate: false` to let such cells overflow
 instead.
@@ -107,8 +108,23 @@ console.log(renderGrid(running, { widths }));
 console.log(renderGrid(idle, { widths }));
 ```
 
-Keep a potentially long reason column before another populated column if it
-needs truncation. Trailing cells remain open-ended even with an explicit width.
+To bound a long trailing reason, opt into truncating the last populated cell
+of each row. This also applies to headers, ragged rows, and single-column tables:
+
+```js
+const rows = [['math', 'a very long reason']];
+const widths = measureColumns([rows]);
+widths[1] = 10;
+renderGrid(rows, { widths, truncateTrailing: true }); // 'math  a very lo…'
+// The same result using automatic measurement with a cap:
+formatTable(rows, { max: [null, 10], truncateTrailing: true });
+```
+
+`truncateTrailing` defaults to `false` and works in `renderGrid`, `formatTable`,
+and `printTable`. It uses the existing column width and `ellipsis` option.
+`truncate: false` takes precedence. Zero or missing explicit widths remain
+unconstrained. Left-aligned trailing cells stay unpadded; right alignment still
+pads on the left. This is single-line truncation, not wrapping within cells.
 
 The truncation mark itself is an option: `ellipsis` defaults to `…`; pass
 `'...'` for ASCII-only terminals or `''` for a hard cut. A mark wider than the

@@ -23,8 +23,10 @@ implements these; callers supply structure, the library owns formatting.
   `liveness=`). The column header carries the name.
 - **Numeric columns right-aligned** (`align: 'right'`).
 - **The open-ended, variable-length column goes LAST** (timing text, error
-  tails). Trailing cells are never padded or truncated, so ragged length
-  never stretches the aligned prefix.
+  tails). Trailing cells are open-ended by default, so ragged length never
+  stretches the aligned prefix. Callers can set `truncateTrailing: true` to
+  bound the last populated cell by its width using the existing ellipsis.
+  Left-aligned tails remain unpadded; `truncate: false` disables all truncation.
 - Reorder columns to achieve this rather than accepting mid-grid raggedness.
 
 ## Numbers and times

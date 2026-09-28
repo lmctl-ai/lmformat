@@ -196,3 +196,51 @@ test('callers can edit one measured width without changing other columns', () =>
   widths[2] = 1;
   assert.equal(renderGrid(rows, { widths }), 'name      a lon…  12h\nx         short   3m');
 });
+
+test('trailing truncation is opt-in and uses an overridden measured width', () => {
+  const rows = [['a', 'a long reason'], ['bb', 'ok']];
+  const widths = measureColumns([rows]);
+  widths[1] = 6;
+  const original = 'a   a long reason\nbb  ok';
+  assert.equal(renderGrid(rows, { widths }), original);
+  assert.equal(renderGrid(rows, { widths, truncateTrailing: false }), original);
+  assert.equal(renderGrid(rows, { widths, truncateTrailing: true }), 'a   a lon…\nbb  ok');
+});
+
+test('trailing truncation flows through capped table and print APIs, including headers', () => {
+  const rows = [['a', 'a long reason'], ['bb', 'ok']];
+  const options = { headers: ['id', 'reason'], max: [null, 4], truncateTrailing: true };
+  const expected = 'id  rea…\na   a l…\nbb  ok';
+  assert.equal(formatTable(rows, options), expected);
+  const writes = [];
+  printTable(rows, { ...options, stream: { write: (text) => writes.push(text) } });
+  assert.deepEqual(writes, [`${expected}\n`]);
+});
+
+test('truncate false overrides trailing truncation and preserves overflow', () => {
+  const rows = [['long', 'a long reason']];
+  assert.equal(renderGrid(rows, { widths: [2, 4], truncateTrailing: true, truncate: false }),
+    'long  a long reason');
+  // Zero or omitted explicit widths retain their existing unconstrained behavior.
+  assert.equal(renderGrid(rows, { widths: [4, 0], truncateTrailing: true }), 'long  a long reason');
+  assert.equal(renderGrid(rows, { widths: [4], truncateTrailing: true }), 'long  a long reason');
+});
+
+test('trailing truncation uses the existing ellipsis and Unicode display-width logic', () => {
+  assert.equal(formatTable([['a', '名字名字']], { max: [null, 4], truncateTrailing: true }), 'a  名…');
+  assert.equal(formatTable([['longer']], { max: [5], truncateTrailing: true, ellipsis: '...' }), 'lo...');
+  assert.equal(formatTable([['longer']], { max: [4], truncateTrailing: true, ellipsis: '' }), 'long');
+  assert.equal(formatTable([['longer']], { max: [1], truncateTrailing: true, ellipsis: '...' }), '…');
+});
+
+test('trailing truncation applies to each row’s last populated cell, including ragged rows', () => {
+  const rows = [['abcdef', '', null], ['a', 'longer'], [], ['abcdef']];
+  assert.equal(formatTable(rows, { max: [3, 4], truncateTrailing: true }), 'ab…\na    lon…\n\nab…');
+  assert.equal(formatTable([], { truncateTrailing: true }), '');
+});
+
+test('trailing truncation preserves right alignment, margins, and exact-fit cells', () => {
+  assert.equal(renderGrid([['longer'], ['ok'], ['four']], {
+    widths: [4], align: ['right'], margin: '> ', truncateTrailing: true,
+  }), '> lon…\n>   ok\n> four');
+});

@@ -4,8 +4,11 @@ export type ColumnAlign = 'left' | 'right';
 export interface TableOptions {
   headers?: TableCell[];
   align?: ColumnAlign[];
-  /** Truncate over-width non-trailing cells with an ellipsis (default true). */
+  /** Truncate over-width cells (default true). False disables all truncation. */
   truncate?: boolean;
+  /** Also truncate the last populated cell of each row (default false).
+   * Uses its column width and ellipsis; requires truncate to be enabled. */
+  truncateTrailing?: boolean;
   /** Leading indent for every line: a number of spaces or a string. */
   margin?: number | string;
   /** Per-column width caps from manual inspection; null/undefined entries
