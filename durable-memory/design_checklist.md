@@ -39,10 +39,12 @@ implements these; callers supply structure, the library owns formatting.
 - Percent from fractions: `16%`; non-finite input renders `?%`.
 - Progress is a **bare ASCII fill** (`###       `, `formatBar`) — no bracket
   frame; the grid is the structure. Pace-matched pairs (usage vs window
-  elapsed) with equal fills mean "perfectly paced"; add an OVERSTOCK column:
-  under pace (overstock) is the tokens left as a percent (`+88%`); over pace
-  (understock) is the time the user will be blocked — quota exhausts before
-  reset at the current burn rate (`-2d02h03m`).
+  elapsed) with equal fills mean "perfectly paced"; add a STOCK column with
+  the state spelled out — no sign conventions to misread: overstock (under
+  pace, moving too slow) shows the tokens left (`overstock +88%`);
+  understock (over pace, too fast) shows the time the user will be blocked —
+  quota exhausts before reset at the current burn rate (`understock
+  -2d02h03m`).
 - Absolute ISO timestamps and exact values belong in `--json`, not in
   human text.
 
