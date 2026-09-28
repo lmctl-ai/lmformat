@@ -8,6 +8,9 @@ export interface TableOptions {
   truncate?: boolean;
   /** Leading indent for every line: a number of spaces or a string. */
   margin?: number | string;
+  /** Per-column width caps from manual inspection; null/undefined entries
+   * stay uncapped. Over-width non-trailing cells truncate with an ellipsis. */
+  max?: Array<number | null | undefined>;
 }
 
 export interface Grid {
@@ -20,8 +23,9 @@ export interface RenderGridOptions extends TableOptions {
 }
 
 export interface MeasureOptions {
-  /** Exclude +3σ width outliers per column from the measurement (default true). */
-  trimOutliers?: boolean;
+  /** Per-column width caps from manual inspection; null/undefined entries
+   * stay uncapped. */
+  max?: Array<number | null | undefined>;
 }
 
 export interface PrintTableOptions extends TableOptions {

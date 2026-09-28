@@ -94,59 +94,54 @@ function truncateDisplay(cell, width) {
   return `${out}…`;
 }
 
+function normalizeMax(max) {
+  if (max === undefined) return [];
+  if (!Array.isArray(max)) {
+    throw new TypeError('max must be an array of per-column width caps');
+  }
+  return max.map((value) => {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+      throw new TypeError('max entries must be positive integers, null, or undefined');
+    }
+    return value;
+  });
+}
+
 /** Measure column display widths across one or more grids. Pair with
  * renderGrid to align several tables on one shared grid.
- * By default, statistical outliers are excluded from each column's width so
- * one giant cell cannot stretch the whole column. A DATA cell counts as an
- * outlier only when it is wider than BOTH the column's mean + 3 standard
- * deviations AND 3x the column median — modest variation (a longer alias, a
- * wider header) never trims. Header cells always participate in the width.
- * Pass { trimOutliers: false } to measure every cell. */
-function measureColumns(grids, { trimOutliers = true } = {}) {
+ * Each column's width is simply the widest cell (headers included) — no
+ * statistical trimming. When real data shows a column needs a bound, pass
+ * { max: [cap, ...] } with a manually chosen cap per column (null/undefined
+ * entries stay uncapped); over-width non-trailing cells then truncate with
+ * an ellipsis at render time. A cap on the trailing column has no visible
+ * effect: trailing cells are open-ended by design. */
+function measureColumns(grids, { max } = {}) {
   if (!Array.isArray(grids)) {
     throw new TypeError('grids must be an array of grids');
   }
-  const dataSamples = [];
-  const headerWidths = [];
-  const push = (samples, column, width) => {
-    (samples[column] ??= []).push(width);
+  const caps = normalizeMax(max);
+  const widths = [];
+  const push = (column, width) => {
+    widths[column] = Math.max(widths[column] ?? 0, width);
   };
   for (const input of grids) {
     const grid = normalizeGrid(input);
     if (grid.headers !== undefined) {
       normalizeRow(grid.headers).forEach((cell, column) => {
-        push(headerWidths, column, displayWidth(cell));
+        push(column, displayWidth(cell));
       });
     }
     for (const row of grid.rows.map(normalizeRow)) {
       row.forEach((cell, column) => {
-        push(dataSamples, column, displayWidth(cell));
+        push(column, displayWidth(cell));
       });
     }
   }
-  const columnCount = Math.max(dataSamples.length, headerWidths.length);
-  const widths = [];
-  for (let column = 0; column < columnCount; column += 1) {
-    const headersMax = Math.max(0, ...(headerWidths[column] ?? []));
-    const list = dataSamples[column] ?? [];
-    if (list.length === 0) {
-      widths[column] = headersMax;
-      continue;
-    }
-    const dataMax = Math.max(...list);
-    let kept = list;
-    if (trimOutliers && list.length >= 2) {
-      const mean = list.reduce((sum, w) => sum + w, 0) / list.length;
-      const variance = list.reduce((sum, w) => sum + (w - mean) ** 2, 0) / list.length;
-      const sorted = [...list].sort((a, b) => a - b);
-      const median = sorted[Math.floor((sorted.length - 1) / 2)];
-      const threshold = Math.max(mean + 3 * Math.sqrt(variance), 3 * median);
-      kept = list.filter((w) => w <= threshold);
-      if (kept.length === 0) kept = list;
-    }
-    widths[column] = Math.max(headersMax, ...kept);
-  }
-  return widths;
+  return widths.map((width, column) => {
+    const cap = caps[column];
+    return cap === undefined ? width : Math.min(width, cap);
+  });
 }
 
 exports.measureColumns = measureColumns;
@@ -163,17 +158,22 @@ function normalizeMargin(margin) {
  * stays aligned (pass { truncate: false } to let them overflow); trailing
  * cells are never padded or truncated, so an open-ended last column renders
  * in full. Omitted widths measure the given rows alone (equivalent to
- * formatTable). `margin` (spaces count or string) indents every line. */
-function renderGrid(rows, { widths, headers, align, truncate = true, margin } = {}) {
+ * formatTable); { max } caps that self-measurement per column (it is an
+ * error to pass both widths and max). `margin` (spaces count or string)
+ * indents every line. */
+function renderGrid(rows, { widths, headers, align, truncate = true, margin, max } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
   if (widths !== undefined && !Array.isArray(widths)) {
     throw new TypeError('widths must be an array of column widths');
   }
+  if (widths !== undefined && max !== undefined) {
+    throw new TypeError('pass widths or max, not both (max caps a measurement)');
+  }
   const indent = normalizeMargin(margin);
   const alignment = normalizeAlign(align);
-  const columns = widths ?? measureColumns([{ rows, headers }], { trimOutliers: truncate });
+  const columns = widths ?? measureColumns([{ rows, headers }], { max });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
 
@@ -195,13 +195,13 @@ function renderGrid(rows, { widths, headers, align, truncate = true, margin } = 
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align, truncate, margin } = {}) {
-  return renderGrid(rows, { headers, align, truncate, margin });
+function formatTable(rows, { headers, align, truncate, margin, max } = {}) {
+  return renderGrid(rows, { headers, align, truncate, margin, max });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, truncate, margin, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align, truncate, margin });
+function printTable(rows, { headers, align, truncate, margin, max, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate, margin, max });
   if (output) stream.write(`${output}\n`);
 }
 

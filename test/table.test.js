@@ -130,18 +130,20 @@ test('renderGrid without widths measures its own rows; short widths truncate', (
   assert.throws(() => renderGrid([['a']], { widths: 'wide' }), TypeError);
 });
 
-test('measureColumns trims only egregious width outliers by default', () => {
-  // One 120-char cell among ~10-char cells: excluded from the width.
-  const quiet = Array.from({ length: 12 }, (_, i) => [`row-${i}`, 'ok']);
-  const giant = [['row-x', 'E'.repeat(120)]];
-  const widths = measureColumns([quiet, giant]);
-  assert.equal(widths[1], 2); // the 120-char cell is trimmed; kept max is 'ok'
-  assert.deepEqual(measureColumns([quiet, giant], { trimOutliers: false })[1], 120);
-  // Modest variation is NOT trimmed: one 12-char cell among 6..8-char cells stays.
-  const aliases = [['Lead'], ['Reviewer'], ['MetaLead-long']];
-  assert.equal(measureColumns([aliases])[0], 13);
-  // Headers are never trimmed, even when wider than every data cell.
-  assert.equal(measureColumns([{ rows: [['a'], ['bb']], headers: ['a very wide header'] }])[0], 18);
+test('measureColumns applies manual per-column width caps', () => {
+  const grids = [[['short', 'ok']], [['a rather long member name', 'fine']]];
+  // Uncapped: the widest cell wins — no statistical trimming.
+  assert.deepEqual(measureColumns(grids), [25, 4]);
+  // A cap bounds its column; uncapped columns (null or absent) are untouched.
+  assert.deepEqual(measureColumns(grids, { max: [12] }), [12, 4]);
+  assert.deepEqual(measureColumns(grids, { max: [null, 3] }), [25, 3]);
+  // A cap below the header width caps the header too — the caller owns both.
+  assert.deepEqual(measureColumns([{ rows: [['a']], headers: ['a very wide header'] }], { max: [8] }), [8]);
+  // A cap wider than every cell never stretches the column.
+  assert.deepEqual(measureColumns(grids, { max: [80] }), [25, 4]);
+  assert.throws(() => measureColumns(grids, { max: 12 }), TypeError);
+  assert.throws(() => measureColumns(grids, { max: [0] }), TypeError);
+  assert.throws(() => measureColumns(grids, { max: [1.5] }), TypeError);
 });
 
 test('margin indents every rendered line, empty output stays empty', () => {
@@ -155,20 +157,16 @@ test('margin indents every rendered line, empty output stays empty', () => {
   assert.throws(() => formatTable([['a']], { margin: 'x\ny' }), TypeError);
 });
 
-test('over-width outlier cells render truncated with an ellipsis', () => {
+test('over-width cells under a manual cap render truncated with an ellipsis', () => {
   // The giant cell sits MID-row (a trailing cell is open-ended by design).
   const rows = [
-    ['alpha', 'ok'], ['beta', 'ok'], ['gamma', 'ok'], ['delta', 'ok'],
-    ['epsilon', 'ok'], ['zeta', 'ok'], ['eta', 'ok'], ['theta', 'ok'],
-    ['iota', 'ok'], ['kappa', 'ok'], ['lambda', 'ok'],
+    ['alpha', 'ok', 'tail'],
     ['mu', `${'E'.repeat(120)}`, 'tail'],
   ];
-  const lines = formatTable(rows).split('\n');
-  const out = lines[11];
-  assert.ok(out.includes('…'));
-  assert.ok(!out.includes('E'.repeat(120)));
-  // The truncated cell still occupies its column: 'tail' starts where the
-  // other rows' third column would, and the first columns are intact.
-  assert.ok(lines[0].startsWith('alpha'));
-  assert.ok(out.endsWith('tail'));
+  const lines = formatTable(rows, { max: [null, 12] }).split('\n');
+  assert.equal(lines[0], 'alpha  ok            tail');
+  assert.equal(lines[1], `mu     ${'E'.repeat(11)}…  tail`);
+  // A cap through renderGrid's self-measurement; widths + max conflict throws.
+  assert.equal(renderGrid([['long', 'x']], { max: [2] }), 'l…  x');
+  assert.throws(() => renderGrid([['a']], { widths: [1], max: [1] }), /widths or max/);
 });

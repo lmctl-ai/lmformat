@@ -52,10 +52,12 @@ implements these; callers supply structure, the library owns formatting.
 
 - Alignment uses **terminal display width**: CJK/emoji count double,
   combining marks zero.
-- **Width outliers are trimmed** from column measurement (wider than both
-  mean+3σ and 3× median — modest variation and headers never trim), and
-  over-width mid-row cells truncate with `…`. Both opt out per call
-  (`trimOutliers: false`, `truncate: false`).
+- **Column widths are exactly the widest cell** — no statistical trimming.
+  When real output shows a column needs a bound, set a **manual cap** chosen
+  by inspecting the data (`max: [26, null, 20]`), and over-width mid-row
+  cells truncate with `…`. A cap that covers every legitimate value and only
+  binds on pathological ones is the goal; pick caps from measured fleet
+  data, not guesses. Opt out of truncation per call (`truncate: false`).
 - Untrusted text (filesystem paths, DB values, provider payloads) goes
   through `escapeCell` — one bad value must never abort a listing.
 - Missing or invalid data renders as `unknown` / `?%`, never throws.
