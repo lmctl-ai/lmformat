@@ -14,6 +14,9 @@ export interface TableOptions {
   /** Per-column width caps from manual inspection; null/undefined entries
    * stay uncapped. Over-width non-trailing cells truncate with an ellipsis. */
   max?: Array<number | null | undefined>;
+  /** Truncation mark (default '…'); '' gives a hard cut. A mark wider than
+   * the column falls back to '…'. */
+  ellipsis?: string;
 }
 
 export interface Grid {

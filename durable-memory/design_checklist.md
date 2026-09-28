@@ -53,11 +53,16 @@ implements these; callers supply structure, the library owns formatting.
 - Alignment uses **terminal display width**: CJK/emoji count double,
   combining marks zero.
 - **Column widths are exactly the widest cell** — no statistical trimming.
-  When real output shows a column needs a bound, set a **manual cap** chosen
-  by inspecting the data (`max: [26, null, 20]`), and over-width mid-row
-  cells truncate with `…`. A cap that covers every legitimate value and only
-  binds on pathological ones is the goal; pick caps from measured fleet
-  data, not guesses. Opt out of truncation per call (`truncate: false`).
+  Measured width is a clue, not a verdict: callers may **pin a column
+  explicitly** (`widths: [null, 20]` — sparse entries measure) or **cap it**
+  (`max: [26]`) after inspecting real data. Over-width mid-row cells truncate
+  with `…`. A pin or cap that covers every legitimate value and only binds on
+  pathological ones is the goal; pick values from measured fleet data, not
+  guesses. Opt out of truncation per call (`truncate: false`).
+- **Baked-in glyphs are options with unchanged defaults** — bar `fill`/`empty`/
+  `unknown` (`#`/` `/`?`), truncation `ellipsis` (`…`). New display capability
+  lands in lmformat opt-in; the caller's existing output never moves unless it
+  asks.
 - Untrusted text (filesystem paths, DB values, provider payloads) goes
   through `escapeCell` — one bad value must never abort a listing.
 - Missing or invalid data renders as `unknown` / `?%`, never throws.

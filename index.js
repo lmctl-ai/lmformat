@@ -79,19 +79,31 @@ function normalizeGrid(grid) {
   throw new TypeError('each grid must be a rows array or { rows, headers }');
 }
 
-/** Truncate a cell to a display width, ending with an ellipsis. */
-function truncateDisplay(cell, width) {
+function normalizeEllipsis(ellipsis) {
+  if (ellipsis === undefined) return '…';
+  if (typeof ellipsis !== 'string' || /[\x00-\x1f\x7f-\x9f]/u.test(ellipsis)) {
+    throw new TypeError('ellipsis must be a single-line string without terminal control characters');
+  }
+  return ellipsis;
+}
+
+/** Truncate a cell to a display width, ending with an ellipsis. A custom
+ * `ellipsis` (including '' for a hard cut) replaces the default '…'; one
+ * wider than the column falls back to '…'. */
+function truncateDisplay(cell, width, ellipsis = '…') {
   if (displayWidth(cell) <= width) return cell;
-  if (width <= 1) return '…';
+  const mark = displayWidth(ellipsis) > width ? '…' : ellipsis;
+  const markWidth = displayWidth(mark);
+  if (width <= markWidth) return mark;
   let out = '';
   let used = 0;
   for (const char of cell) {
     const charWidth = displayWidth(char);
-    if (used + charWidth > width - 1) break;
+    if (used + charWidth > width - markWidth) break;
     out += char;
     used += charWidth;
   }
-  return `${out}…`;
+  return `${out}${mark}`;
 }
 
 function normalizeMax(max) {
@@ -176,13 +188,15 @@ function normalizeMargin(margin) {
  * formatTable); null/undefined/missing widths also measure their columns.
  * { max } caps measured columns only; explicit widths win over caps.
  * `margin` (spaces count or string)
- * indents every line. */
-function renderGrid(rows, { widths, headers, align, truncate = true, margin, max } = {}) {
+ * indents every line; `ellipsis` (default '…') is the truncation mark —
+ * '' gives a hard cut. */
+function renderGrid(rows, { widths, headers, align, truncate = true, margin, max, ellipsis } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
   const indent = normalizeMargin(margin);
   const alignment = normalizeAlign(align);
+  const mark = normalizeEllipsis(ellipsis);
   const columns = measureColumns([{ rows, headers }], { max, widths });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
@@ -193,7 +207,7 @@ function renderGrid(rows, { widths, headers, align, truncate = true, margin, max
     while (last >= 0 && row[last] === '') last--;
     return row.slice(0, last + 1).map((cell, column) => {
       const width = columns[column] || 0;
-      const fitted = truncate && width > 0 && column !== last ? truncateDisplay(cell, width) : cell;
+      const fitted = truncate && width > 0 && column !== last ? truncateDisplay(cell, width, mark) : cell;
       if (alignment[column] === 'right') return padDisplay(fitted, width, true);
       return column === last ? fitted : padDisplay(fitted, width, false);
     }).join('  ');
@@ -205,13 +219,13 @@ function renderGrid(rows, { widths, headers, align, truncate = true, margin, max
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align, truncate, margin, max, widths } = {}) {
-  return renderGrid(rows, { headers, align, truncate, margin, max, widths });
+function formatTable(rows, { headers, align, truncate, margin, max, widths, ellipsis } = {}) {
+  return renderGrid(rows, { headers, align, truncate, margin, max, widths, ellipsis });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, truncate, margin, max, widths, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align, truncate, margin, max, widths });
+function printTable(rows, { headers, align, truncate, margin, max, widths, ellipsis, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate, margin, max, widths, ellipsis });
   if (output) stream.write(`${output}\n`);
 }
 

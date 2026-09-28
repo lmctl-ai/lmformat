@@ -171,6 +171,19 @@ test('over-width cells under a manual cap render truncated with an ellipsis', ()
   assert.equal(renderGrid([['long', 'x']], { widths: [3], max: [1] }), 'lo…  x');
 });
 
+test('the truncation mark is an option: default …, custom, hard cut, fallback', () => {
+  assert.equal(renderGrid([['long', 'x']], { widths: [3] }), 'lo…  x');
+  // A multi-character ASCII mark for terminals without Unicode.
+  assert.equal(renderGrid([['longer', 'x']], { widths: [5], ellipsis: '...' }), 'lo...  x');
+  // '' is a hard cut with no mark.
+  assert.equal(renderGrid([['longer', 'x']], { widths: [4], ellipsis: '' }), 'long  x');
+  // A mark wider than the column falls back to '…'.
+  assert.equal(renderGrid([['long', 'x']], { widths: [1], ellipsis: '...' }), '…  x');
+  // Invalid marks throw; the default path never revalidates.
+  assert.throws(() => renderGrid([['a']], { ellipsis: 'x\ny' }), TypeError);
+  assert.throws(() => renderGrid([['a']], { ellipsis: 3 }), TypeError);
+});
+
 test('pins one column and measures null, undefined, sparse, and omitted widths', () => {
   const rows = [['a', 'lengthy', 'z'], ['long', 'b', 'q']];
   const expected = 'a     le…  z\nlong  b    q';

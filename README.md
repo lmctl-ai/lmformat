@@ -117,6 +117,11 @@ zero retains the existing unpadded, untruncated behavior. Trailing cells remain
 open-ended even with an explicit width; right-aligned trailing cells still pad
 on the left. No input options or rows are mutated.
 
+The truncation mark itself is an option: `ellipsis` defaults to `…`; pass
+`'...'` for ASCII-only terminals or `''` for a hard cut. A mark wider than the
+column falls back to `…`. Like the bar glyphs (`fill`/`empty`/`unknown`), every
+baked-in glyph is a caller option whose default keeps existing output unchanged.
+
 Cells must be plain single-line text: tabs, newlines, ANSI escape sequences, and
 other terminal control characters are rejected (use `escapeCell` to sanitize
 untrusted text first). Widths are terminal display widths: East Asian
