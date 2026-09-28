@@ -39,10 +39,10 @@ implements these; callers supply structure, the library owns formatting.
 - Percent from fractions: `16%`; non-finite input renders `?%`.
 - Progress is a **bare ASCII fill** (`###       `, `formatBar`) — no bracket
   frame; the grid is the structure. Pace-matched pairs (usage vs window
-  elapsed) with equal fills mean "perfectly paced"; add an OVERSTOCK column
-  for the delta — under pace is surplus stock: slack time compact
-  (`+2d02h03m`, how long you could be blocked and still land on pace);
-  over pace is understock: percentage points over (`-7%`).
+  elapsed) with equal fills mean "perfectly paced"; add an OVERSTOCK column:
+  under pace (overstock) is usage slack as a percent (`+48%`); over pace
+  (understock) is the time the user will be blocked — quota exhausts before
+  reset at the current burn rate (`-2d02h03m`).
 - Absolute ISO timestamps and exact values belong in `--json`, not in
   human text.
 
