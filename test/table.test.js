@@ -244,3 +244,22 @@ test('trailing truncation preserves right alignment, margins, and exact-fit cell
     widths: [4], align: ['right'], margin: '> ', truncateTrailing: true,
   }), '> lon…\n>   ok\n> four');
 });
+
+test('readme introductory table example matches formatTable output', () => {
+  const fs = require('node:fs');
+  const readme = fs.readFileSync(require.resolve('../README.md'), 'utf8');
+  const match = readme.match(/```text\n([\s\S]*?)\n```/);
+  assert.ok(match, 'found text block in README');
+  const expectedInReadme = match[1];
+
+  const rows = [
+    ['triage.lmctl', 'Triage', 'done', 5, '25s'],
+    ['math.lmctl', 'Lead', 'done', 120, '2s'],
+  ];
+  const actual = formatTable(rows, {
+    headers: ['team', 'alias', 'status', 'msgs', 'time spent'],
+    align: ['left', 'left', 'left', 'right', 'right'],
+  });
+  assert.equal(expectedInReadme, actual);
+});
+

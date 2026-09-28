@@ -22,8 +22,8 @@ printTable(rows, {
 
 ```text
 team          alias   status  msgs  time spent
-triage.lmctl  Triage  done       5        25s
-math.lmctl    Lead   done     120         2s
+triage.lmctl  Triage  done       5         25s
+math.lmctl    Lead    done     120          2s
 ```
 
 `formatTable(rows, { headers, align }?)` returns a string without a final newline.
@@ -152,6 +152,7 @@ printTable([
   ['session', formatRelativeTime('2026-09-25T20:40:00Z', { now })],
   ['missing', formatRelativeTime('unknown', { now })],
 ], { headers: ['limit', 'resets in'] });
+// limit    resets in
 // weekly   3d
 // session  40m
 // missing  unknown
