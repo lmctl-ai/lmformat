@@ -40,9 +40,9 @@ implements these; callers supply structure, the library owns formatting.
 - Progress is a **bare ASCII fill** (`###       `, `formatBar`) — no bracket
   frame; the grid is the structure. Pace-matched pairs (usage vs window
   elapsed) with equal fills mean "perfectly paced"; add an OVERSTOCK column
-  for the delta — over pace: percentage points over (`+7%`), under pace:
-  slack time compact (`-2d02h03m`, how long you could be blocked and still
-  land on pace).
+  for the delta — under pace is surplus stock: slack time compact
+  (`+2d02h03m`, how long you could be blocked and still land on pace);
+  over pace is understock: percentage points over (`-7%`).
 - Absolute ISO timestamps and exact values belong in `--json`, not in
   human text.
 
