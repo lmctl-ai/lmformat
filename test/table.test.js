@@ -122,7 +122,7 @@ test('renderGrid without widths measures its own rows; short widths truncate', (
   assert.equal(renderGrid([['long', 'x']], { widths: [2, 1] }), 'l…  x');
   // Opt out to let over-width cells overflow instead.
   assert.equal(renderGrid([['long', 'x']], { widths: [2, 1], truncate: false }), 'long  x');
-  // A zero/missing width never truncates (caller passed no constraint).
+  // Missing widths are measured, so the full cell fits.
   assert.equal(renderGrid([['long', 'x']], { widths: [] }), 'long  x');
   // Trailing cells are never truncated — an open-ended last column renders in full.
   assert.equal(renderGrid([['a', 'a very long trailing cell']], { widths: [1, 3] }),
@@ -166,7 +166,56 @@ test('over-width cells under a manual cap render truncated with an ellipsis', ()
   const lines = formatTable(rows, { max: [null, 12] }).split('\n');
   assert.equal(lines[0], 'alpha  ok            tail');
   assert.equal(lines[1], `mu     ${'E'.repeat(11)}…  tail`);
-  // A cap through renderGrid's self-measurement; widths + max conflict throws.
+  // A cap through renderGrid's self-measurement; explicit widths take precedence.
   assert.equal(renderGrid([['long', 'x']], { max: [2] }), 'l…  x');
-  assert.throws(() => renderGrid([['a']], { widths: [1], max: [1] }), /widths or max/);
+  assert.equal(renderGrid([['long', 'x']], { widths: [3], max: [1] }), 'lo…  x');
+});
+
+test('pins one column and measures null, undefined, sparse, and omitted widths', () => {
+  const rows = [['a', 'lengthy', 'z'], ['long', 'b', 'q']];
+  const expected = 'a     le…  z\nlong  b    q';
+  for (const widths of [[null, 3], [undefined, 3, undefined], [, 3]]) {
+    assert.equal(renderGrid(rows, { widths }), expected);
+  }
+  assert.equal(renderGrid(rows, { widths: [] }), renderGrid(rows));
+  assert.equal(renderGrid(rows, { widths: [6] }), 'a       lengthy  z\nlong    b        q');
+});
+
+test('explicit widths win over max; measured columns include headers and honor caps', () => {
+  const rows = [['abcdef', 'lengthy', 'z']];
+  const options = { headers: ['member', 'MODEL', 'tail'], widths: [null, 3], max: [4, 1] };
+  assert.equal(renderGrid(rows, options), 'mem…  MO…  tail\nabc…  le…  z');
+  assert.deepEqual(measureColumns([{ rows: [['a', 'b']], headers: ['member', 'model'] }],
+    { widths: [null, 10], max: [4, 2] }), [4, 10]);
+});
+
+test('shared measurements support pinning and keep all sections aligned', () => {
+  const first = [['a', 'short', 'x']];
+  const second = [['long', 'runaway reason', 'y']];
+  const widths = measureColumns([first, second], { widths: [null, 6], max: [3, 2] });
+  assert.deepEqual(widths, [3, 6, 1]);
+  assert.equal(renderGrid(first, { widths }), 'a    short   x');
+  assert.equal(renderGrid(second, { widths }), 'lo…  runaw…  y');
+});
+
+test('width overrides flow through table and print APIs without mutating inputs', () => {
+  const widths = Object.freeze([null, 4]);
+  const max = Object.freeze([3, 1]);
+  const rows = Object.freeze([Object.freeze(['long', 'a', 'z'])]);
+  const options = { widths, max, align: ['right', 'right'], margin: 2 };
+  assert.equal(formatTable(rows, options), '  lo…     a  z');
+  const writes = [];
+  printTable(rows, { ...options, stream: { write: (text) => writes.push(text) } });
+  assert.deepEqual(writes, ['  lo…     a  z\n']);
+});
+
+test('explicit widths preserve Unicode fitting, zero, overflow, and open trailing cells', () => {
+  assert.equal(renderGrid([['名字', 'long', 'tail']], { widths: [3, 2] }), '名…  l…  tail');
+  assert.equal(renderGrid([['long', 'tail']], { widths: [0, 1], max: [1] }), 'long  tail');
+  assert.equal(renderGrid([['long', 'tail']], { widths: [2], truncate: false }), 'long  tail');
+  assert.equal(renderGrid([], { widths: [null, 2] }), '');
+  for (const value of [-1, 1.5, NaN, Infinity, '2', false]) {
+    assert.throws(() => renderGrid([['a']], { widths: [value] }), /widths entries/);
+  }
+  assert.throws(() => renderGrid([['a']], { widths: [2], max: [0] }), /max entries/);
 });

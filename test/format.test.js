@@ -125,6 +125,24 @@ test('formatTimer renders clock-style remaining time', () => {
   }
 });
 
+test('formatBar allows fill, empty, and unknown glyphs while retaining defaults', () => {
+  assert.equal(formatBar(0.5, { width: 6, fill: '█', empty: '░' }), '███░░░');
+  assert.equal(formatBar(0.5, { width: 4, fill: '█' }), '██  ');
+  assert.equal(formatBar(0.5, { width: 4, empty: '.' }), '##..');
+  assert.equal(formatBar(-1, { width: 3, empty: '·' }), '···');
+  assert.equal(formatBar(2, { width: 3, fill: '█' }), '███');
+  assert.equal(formatBar(NaN, { width: 3, fill: '█', empty: '.' }), '???');
+  assert.equal(formatBar(null, { width: 3, unknown: '·' }), '···');
+});
+
+test('formatBar rejects glyphs that cannot fill one terminal column', () => {
+  for (const option of ['fill', 'empty', 'unknown']) {
+    for (const value of ['', 'xx', '界', '🚀', '\u0301', '\u200b', '\n', '\t', '\x1b', null, 1]) {
+      assert.throws(() => formatBar(0.5, { [option]: value }), TypeError);
+    }
+  }
+});
+
 test('escapeCell makes untrusted text safe for table cells', () => {
   assert.equal(escapeCell('plain'), 'plain');
   assert.equal(escapeCell('a\nb\tc\rd'), 'a\\nb\\tc\\rd');

@@ -59,7 +59,7 @@ console.log(renderGrid(idle, { widths, margin: 2 }));
   or.lmctl:Lead        chat  ran 5s, idle 6m ago
 ```
 
-`measureColumns(grids, { max }?)` takes an array of grids; a grid is a rows array or
+`measureColumns(grids, { max, widths }?)` takes an array of grids; a grid is a rows array or
 `{ rows, headers }`. It returns the display width of each column across all
 grids — simply the widest cell, headers included; pass `max` (an array of
 per-column caps, `null`/`undefined` entries uncapped) to bound chosen columns.
@@ -70,8 +70,9 @@ are never truncated — the last populated column is open-ended by design.
 `margin` (a number of spaces or a string) indents every rendered line, so
 section grids can sit under their headings without caller-side prefixing.
 Omitting `widths` makes `renderGrid` measure its own rows — exactly what
-`formatTable` does; `max` caps that self-measurement (passing both `widths`
-and `max` throws). Measure globally and render per section, or measure per
+`formatTable` does. Null, undefined, sparse, or omitted entries in `widths`
+also measure their columns. `max` caps measured columns; an explicit width
+takes precedence over a cap on the same column. Measure globally and render per section, or measure per
 section — the caller chooses.
 
 All rows are loaded before formatting. Each column takes the maximum cell length
@@ -83,10 +84,10 @@ two-space gap. Trailing empty cells add no padding. Ragged rows are accepted;
 over their column's width (measured or capped) are truncated with an ellipsis
 unless `truncate: false`.
 
-## Column width caps (manual, per call)
+## Column widths and caps (manual, per call)
 
 One giant cell should not stretch a whole column — and no statistics should
-decide what "giant" means. The width of a column is the widest cell, period.
+decide what "giant" means. The widest cell is the default, which callers can override.
 When you have inspected real output and know a column should never exceed a
 width, say so: `measureColumns(grids, { max: [26, null, 20] })` caps column 0
 at 26 and column 2 at 20, leaving column 1 uncapped. Caps also work through
@@ -96,6 +97,25 @@ column has no visible effect, since trailing cells are open-ended. When
 rendering, a non-trailing cell wider than its column is truncated to the
 width with a trailing `…`; pass `truncate: false` to let such cells overflow
 instead.
+
+Use `widths` to pin one column or every column. Unlike a cap, an explicit width
+can stretch a column beyond its content. `widths` works in `measureColumns`,
+`renderGrid`, `formatTable`, and `printTable`:
+
+```js
+// Pin column 1 to 20 display columns; measure the others, capping column 0 at 26.
+renderGrid(rows, { widths: [null, 20], max: [26] });
+
+// Share measured and pinned widths across several sections.
+const widths = measureColumns([running, idle], { widths: [null, 20], max: [26] });
+console.log(renderGrid(running, { widths }));
+console.log(renderGrid(idle, { widths }));
+```
+
+Widths are non-negative integers. Null/undefined/missing entries use measurement;
+zero retains the existing unpadded, untruncated behavior. Trailing cells remain
+open-ended even with an explicit width; right-aligned trailing cells still pad
+on the left. No input options or rows are mutated.
 
 Cells must be plain single-line text: tabs, newlines, ANSI escape sequences, and
 other terminal control characters are rejected (use `escapeCell` to sanitize
@@ -144,6 +164,7 @@ are calculated from the resulting text automatically.
 ```js
 const {
   formatCount, formatDuration, formatPercent, formatClock, formatLocalTimestamp,
+  formatBar, formatTimer,
 } = require('@lmctl-ai/lmformat');
 
 formatCount(960_462);        // "960K"   (>= 1M keeps one decimal: "15.8M")
@@ -152,6 +173,8 @@ formatDuration(788_400_000, { maxUnit: "d" });  // "9d 3h" (cap the largest unit
 formatDuration(180_180_000, { style: "compact" }); // "2d02h03m" (dense, no seconds)
 formatPercent(0.16);         // "16%"
 formatBar(0.16);             // "##        "  (bare fill, no frame)
+formatBar(0.5, { width: 6, fill: '█', empty: '░' }); // "███░░░"
+formatBar(null, { width: 3, unknown: '·' });        // "···"
 formatTimer(2_172_000);       // "00:36:12"  ("5d 18:24:33" past 24h)
 formatClock();               // "09:05:03"          local wall clock, now or given time
 formatLocalTimestamp();      // "2026-01-02 09:05:03"  local date and time
@@ -166,6 +189,12 @@ and returns `?%` for non-finite input — deliberately not `unknown`, since the
 inline `used ?% remaining ?%` context wants the unit suffix kept. `formatClock` and `formatLocalTimestamp`
 accept a Date, epoch milliseconds, or a parseable date string (default: now),
 and return `unknown` for invalid input.
+
+`formatBar` defaults to width 10, fill `#`, empty space, and unknown `?`.
+Each custom glyph must be a single character with terminal display width 1;
+wide emoji/CJK, combining marks, control characters, and multi-character strings
+are rejected. Fractions still round to the nearest filled cell and clamp to
+0–1. Non-finite input repeats the `unknown` glyph across the bar.
 
 MIT licensed. Project homepage: [lmctl.com](https://lmctl.com).
 

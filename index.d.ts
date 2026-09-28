@@ -2,6 +2,9 @@ export type TableCell = string | number | boolean | null | undefined;
 export type ColumnAlign = 'left' | 'right';
 
 export interface TableOptions {
+  /** Exact widths override measurement and max. Null/undefined/missing entries
+   * measure automatically. Zero preserves unpadded, untruncated rendering. */
+  widths?: Array<number | null | undefined>;
   headers?: TableCell[];
   align?: ColumnAlign[];
   /** Truncate over-width non-trailing cells with an ellipsis (default true). */
@@ -18,11 +21,11 @@ export interface Grid {
   headers?: TableCell[];
 }
 
-export interface RenderGridOptions extends TableOptions {
-  widths?: number[];
-}
+export interface RenderGridOptions extends TableOptions {}
 
 export interface MeasureOptions {
+  /** Exact widths override measurement and max; other entries measure. */
+  widths?: Array<number | null | undefined>;
   /** Per-column width caps from manual inspection; null/undefined entries
    * stay uncapped. */
   max?: Array<number | null | undefined>;
@@ -47,6 +50,15 @@ export function formatDuration(milliseconds: number | null | undefined, options?
 export function formatClock(value?: TimestampInput): string;
 export function formatLocalTimestamp(value?: TimestampInput): string;
 export function formatPercent(fraction: number | null | undefined): string;
-export function formatBar(fraction: number | null | undefined, options?: { width?: number }): string;
+export interface BarOptions {
+  width?: number;
+  /** Single character of display width 1 (default '#'). */
+  fill?: string;
+  /** Single character of display width 1 (default ' '). */
+  empty?: string;
+  /** Single character of display width 1 for non-finite input (default '?'). */
+  unknown?: string;
+}
+export function formatBar(fraction: number | null | undefined, options?: BarOptions): string;
 export function formatTimer(milliseconds: number | null | undefined): string;
 export function escapeCell(value: unknown): string;
