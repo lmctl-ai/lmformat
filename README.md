@@ -59,7 +59,7 @@ console.log(renderGrid(idle, { widths, margin: 2 }));
   or.lmctl:Lead        chat  ran 5s, idle 6m ago
 ```
 
-`measureColumns(grids, { max, widths }?)` takes an array of grids; a grid is a rows array or
+`measureColumns(grids, { max }?)` takes an array of grids; a grid is a rows array or
 `{ rows, headers }`. It returns the display width of each column across all
 grids — simply the widest cell, headers included; pass `max` (an array of
 per-column caps, `null`/`undefined` entries uncapped) to bound chosen columns.
@@ -70,9 +70,8 @@ are never truncated — the last populated column is open-ended by design.
 `margin` (a number of spaces or a string) indents every rendered line, so
 section grids can sit under their headings without caller-side prefixing.
 Omitting `widths` makes `renderGrid` measure its own rows — exactly what
-`formatTable` does. Null, undefined, sparse, or omitted entries in `widths`
-also measure their columns. `max` caps measured columns; an explicit width
-takes precedence over a cap on the same column. Measure globally and render per section, or measure per
+`formatTable` does; `max` caps that self-measurement (passing both `widths`
+and `max` throws). Measure globally and render per section, or measure per
 section — the caller chooses.
 
 All rows are loaded before formatting. Each column takes the maximum cell length
@@ -98,24 +97,18 @@ rendering, a non-trailing cell wider than its column is truncated to the
 width with a trailing `…`; pass `truncate: false` to let such cells overflow
 instead.
 
-Use `widths` to pin one column or every column. Unlike a cap, an explicit width
-can stretch a column beyond its content. `widths` works in `measureColumns`,
-`renderGrid`, `formatTable`, and `printTable`:
+To override just one column, measure first and edit that entry. This can either
+narrow or widen the column while leaving the other measurements intact:
 
 ```js
-// Pin column 1 to 20 display columns; measure the others, capping column 0 at 26.
-renderGrid(rows, { widths: [null, 20], max: [26] });
-
-// Share measured and pinned widths across several sections.
-const widths = measureColumns([running, idle], { widths: [null, 20], max: [26] });
+const widths = measureColumns([running, idle]);
+widths[1] = 20;
 console.log(renderGrid(running, { widths }));
 console.log(renderGrid(idle, { widths }));
 ```
 
-Widths are non-negative integers. Null/undefined/missing entries use measurement;
-zero retains the existing unpadded, untruncated behavior. Trailing cells remain
-open-ended even with an explicit width; right-aligned trailing cells still pad
-on the left. No input options or rows are mutated.
+Keep a potentially long reason column before another populated column if it
+needs truncation. Trailing cells remain open-ended even with an explicit width.
 
 The truncation mark itself is an option: `ellipsis` defaults to `…`; pass
 `'...'` for ASCII-only terminals or `''` for a hard cut. A mark wider than the

@@ -120,18 +120,6 @@ function normalizeMax(max) {
   });
 }
 
-function normalizeWidths(widths) {
-  if (widths === undefined) return [];
-  if (!Array.isArray(widths)) throw new TypeError('widths must be an array of column widths');
-  return widths.map((value) => {
-    if (value == null) return undefined;
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
-      throw new TypeError('widths entries must be non-negative integers, null, or undefined');
-    }
-    return value;
-  });
-}
-
 /** Measure column display widths across one or more grids. Pair with
  * renderGrid to align several tables on one shared grid.
  * Each column's width is simply the widest cell (headers included) — no
@@ -139,14 +127,12 @@ function normalizeWidths(widths) {
  * { max: [cap, ...] } with a manually chosen cap per column (null/undefined
  * entries stay uncapped); over-width non-trailing cells then truncate with
  * an ellipsis at render time. A cap on the trailing column has no visible
- * effect: trailing cells are open-ended by design. Explicit widths override
- * measurement and caps; null/undefined/missing entries use measurement. */
-function measureColumns(grids, { max, widths: overrides } = {}) {
+ * effect: trailing cells are open-ended by design. */
+function measureColumns(grids, { max } = {}) {
   if (!Array.isArray(grids)) {
     throw new TypeError('grids must be an array of grids');
   }
   const caps = normalizeMax(max);
-  const pinned = normalizeWidths(overrides);
   const widths = [];
   const push = (column, width) => {
     widths[column] = Math.max(widths[column] ?? 0, width);
@@ -165,7 +151,6 @@ function measureColumns(grids, { max, widths: overrides } = {}) {
     }
   }
   return widths.map((width, column) => {
-    if (pinned[column] !== undefined) return pinned[column];
     const cap = caps[column];
     return cap === undefined ? width : Math.min(width, cap);
   });
@@ -185,19 +170,24 @@ function normalizeMargin(margin) {
  * stays aligned (pass { truncate: false } to let them overflow); trailing
  * cells are never padded or truncated, so an open-ended last column renders
  * in full. Omitted widths measure the given rows alone (equivalent to
- * formatTable); null/undefined/missing widths also measure their columns.
- * { max } caps measured columns only; explicit widths win over caps.
- * `margin` (spaces count or string)
+ * formatTable); { max } caps that self-measurement per column (it is an
+ * error to pass both widths and max). `margin` (spaces count or string)
  * indents every line; `ellipsis` (default '…') is the truncation mark —
  * '' gives a hard cut. */
 function renderGrid(rows, { widths, headers, align, truncate = true, margin, max, ellipsis } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
+  if (widths !== undefined && !Array.isArray(widths)) {
+    throw new TypeError('widths must be an array of column widths');
+  }
+  if (widths !== undefined && max !== undefined) {
+    throw new TypeError('pass widths or max, not both (max caps a measurement)');
+  }
   const indent = normalizeMargin(margin);
   const alignment = normalizeAlign(align);
   const mark = normalizeEllipsis(ellipsis);
-  const columns = measureColumns([{ rows, headers }], { max, widths });
+  const columns = widths ?? measureColumns([{ rows, headers }], { max });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
 
@@ -219,13 +209,13 @@ function renderGrid(rows, { widths, headers, align, truncate = true, margin, max
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align, truncate, margin, max, widths, ellipsis } = {}) {
-  return renderGrid(rows, { headers, align, truncate, margin, max, widths, ellipsis });
+function formatTable(rows, { headers, align, truncate, margin, max, ellipsis } = {}) {
+  return renderGrid(rows, { headers, align, truncate, margin, max, ellipsis });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, truncate, margin, max, widths, ellipsis, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align, truncate, margin, max, widths, ellipsis });
+function printTable(rows, { headers, align, truncate, margin, max, ellipsis, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate, margin, max, ellipsis });
   if (output) stream.write(`${output}\n`);
 }
 

@@ -2,9 +2,6 @@ export type TableCell = string | number | boolean | null | undefined;
 export type ColumnAlign = 'left' | 'right';
 
 export interface TableOptions {
-  /** Exact widths override measurement and max. Null/undefined/missing entries
-   * measure automatically. Zero preserves unpadded, untruncated rendering. */
-  widths?: Array<number | null | undefined>;
   headers?: TableCell[];
   align?: ColumnAlign[];
   /** Truncate over-width non-trailing cells with an ellipsis (default true). */
@@ -24,11 +21,11 @@ export interface Grid {
   headers?: TableCell[];
 }
 
-export interface RenderGridOptions extends TableOptions {}
+export interface RenderGridOptions extends TableOptions {
+  widths?: number[];
+}
 
 export interface MeasureOptions {
-  /** Exact widths override measurement and max; other entries measure. */
-  widths?: Array<number | null | undefined>;
   /** Per-column width caps from manual inspection; null/undefined entries
    * stay uncapped. */
   max?: Array<number | null | undefined>;

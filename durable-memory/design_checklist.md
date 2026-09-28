@@ -54,7 +54,7 @@ implements these; callers supply structure, the library owns formatting.
   combining marks zero.
 - **Column widths are exactly the widest cell** — no statistical trimming.
   Measured width is a clue, not a verdict: callers may **pin a column
-  explicitly** (`widths: [null, 20]` — sparse entries measure) or **cap it**
+  explicitly** (measure first, then set `widths[1] = 20` and render) or **cap it**
   (`max: [26]`) after inspecting real data. Over-width mid-row cells truncate
   with `…`. A pin or cap that covers every legitimate value and only binds on
   pathological ones is the goal; pick values from measured fleet data, not
