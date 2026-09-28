@@ -29,6 +29,9 @@ both supported. The surface has three parts:
 - Scalar formatting: compact counts, durations, relative/absolute timestamps,
   percentages, bars, and timers.
 - `escapeCell`: sanitize untrusted text before passing it to strict table APIs.
+  Table APIs reject control characters, tabs, newlines, and ANSI escape sequences
+  (throwing `TypeError`); callers must escape external text (e.g. error messages)
+  before formatting.
 
 Tests mirror those areas in [test/](../test/); [examples/](../examples/) shows real
 session and rate-limit reports. See [README](../README.md) for signatures and
@@ -75,6 +78,10 @@ is documented; it is not full grapheme layout. `ellipsis` defaults to `…`, and
 `''` intentionally requests a hard cut. An oversized mark falls back to `…`:
 therefore `'...'` does not guarantee ASCII-only output in narrow columns.
 
+Keep README examples verified against actual output. Example blocks serve as
+reference output that newcomers and consumers trust; character-level spacing
+mismatches in table examples mislead readers about column alignment and padding.
+
 ## Make and verify a change
 
 ```sh
@@ -93,13 +100,15 @@ table changes, cover headers, ragged rows, trailing cells, alignment, Unicode,
 and interaction with truncation. Check TypeScript consumers as well as runtime.
 
 **Protected:** Consumer tests must use the changed artifact. Sibling `lmctl-src`
-vendors a `.tgz`; editing this checkout cannot change its installed dependency.
-Pack the candidate, then test with that tarball installed in an isolated consumer
-checkout, or explicitly alias its extracted runtime and declarations in a
-temporary test/typecheck configuration. Check running, rate-limit, status, and
-listing output assertions; do not refresh expected output to hide a default drift.
-Run the consumer's full suite before accepting a dependency update, and distinguish
-pre-existing failures from regressions. Report which artifact was exercised.
+(at `../lmctl-src`) vendors a `.tgz`; editing this checkout cannot change its
+installed dependency. Pack the candidate, then test with that tarball installed
+in an isolated consumer checkout, or explicitly alias its extracted runtime and
+declarations in a temporary test/typecheck configuration. Key CLI suites can be run
+via `npm --prefix ../lmctl-src test -- tests/cli/running.test.ts tests/cli/ratelimit.test.ts tests/cli/status.test.ts`.
+Check running, rate-limit, status, and listing output assertions; do not refresh
+expected output to hide a default drift. Run the consumer's full suite before
+accepting a dependency update, and distinguish pre-existing failures from regressions.
+Report which artifact was exercised.
 
 lmbee adoption is coordinated by `refact-kimi`; the sibling `lmauto` repository
 also vendors lmformat. Coordinate the candidate with that owner, test its affected
@@ -115,4 +124,5 @@ the task calls for delivery; report actual checks and remaining gaps.
 Git tags trigger npm publication, so a source push is not a release. For release
 work, use the [README publishing guide](../README.md#publishing) and existing
 [workflows](../.github/workflows/); verify the artifact/version rather than
-overwriting an already distributed version. Never commit prompt files or credentials.
+overwriting an already distributed version. Never commit prompt files, trial logs
+(e.g. `durable-memory/*.log`), or credentials.

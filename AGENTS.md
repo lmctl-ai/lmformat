@@ -10,4 +10,5 @@ are opt-in, dependencies stay at zero, and the trailing cell stays open-ended by
 default. These protect consumer output; do not "simplify" them away.
 
 Verify consumers against the changed package, not their old vendored copy. Do not
-push `lmctl-src`; its operator requires a local handoff.
+push `lmctl-src`; its operator requires a local handoff. Never commit prompt files,
+trial logs, or credentials.
