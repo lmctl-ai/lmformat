@@ -250,14 +250,40 @@ exports.formatCount = formatCount;
 
 const DURATION_UNITS = [['w', 604800], ['d', 86400], ['h', 3600], ['m', 60], ['s', 1]];
 
-/** Elapsed duration with up to two units: 45s, 3m 12s, 2h 5m, 1w 2d.
- * `maxUnit` ('w' default, or 'd'/'h'/'m'/'s') caps the largest unit — e.g.
- * 'd' renders 9 days as "9d 4h" instead of "1w 2d". */
-function formatDuration(milliseconds, { maxUnit = 'w' } = {}) {
+/** Elapsed duration. Default style is up to two spaced units: "45s",
+ * "3m 12s", "2h 5m", "1w 2d". `style: 'compact'` renders zero-padded
+ * adjacent units down to MINUTES with no seconds: "2d02h03m", "04h59m",
+ * "<1m" — dense cells for grids. `maxUnit` ('w' default, or 'd'/'h'/'m'/'s')
+ * caps the largest unit — e.g. 'd' renders 9 days as "9d 3h" / "9d03h"
+ * instead of "1w 2d". */
+function formatDuration(milliseconds, { maxUnit = 'w', style = 'spaced' } = {}) {
   if (typeof milliseconds !== 'number' || !Number.isFinite(milliseconds)) return 'unknown';
   const start = DURATION_UNITS.findIndex(([unit]) => unit === maxUnit);
   if (start === -1) throw new TypeError('maxUnit must be one of "w", "d", "h", "m", "s"');
-  let seconds = Math.floor(Math.max(0, milliseconds) / 1000);
+  if (style !== 'spaced' && style !== 'compact') throw new TypeError('style must be "spaced" or "compact"');
+  const secondsTotal = Math.floor(Math.max(0, milliseconds) / 1000);
+  if (style === 'compact') {
+    const units = DURATION_UNITS.slice(start).filter(([unit]) => unit !== 's');
+    if (units.length === 0 || secondsTotal < 60) return '<1m';
+    const parts = [];
+    let rest = secondsTotal;
+    let started = false;
+    for (const [unit, size] of units) {
+      const amount = Math.floor(rest / size);
+      rest -= amount * size;
+      if (amount > 0 && !started) {
+        const text = unit === 'd' || unit === 'w' ? `${amount}${unit}` : `${pad2(amount)}${unit}`;
+        parts.push({ text, zero: false });
+        started = true;
+      } else if (started) {
+        parts.push({ text: `${pad2(amount)}${unit}`, zero: amount === 0 });
+      }
+    }
+    // Positional zeros stay mid-sequence ("2d00h03m"); trailing zeros drop.
+    while (parts.length > 0 && parts[parts.length - 1].zero) parts.pop();
+    return parts.map((part) => part.text).join('');
+  }
+  let seconds = secondsTotal;
   const parts = [];
   for (const [unit, size] of DURATION_UNITS.slice(start)) {
     if (seconds >= size || (unit === 's' && parts.length === 0)) {

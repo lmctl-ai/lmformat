@@ -64,6 +64,19 @@ test('formatDuration honors maxUnit', () => {
   assert.throws(() => formatDuration(1000, { maxUnit: 'y' }), TypeError);
 });
 
+test('formatDuration compact style: padded adjacent units, no seconds', () => {
+  assert.equal(formatDuration(45_000, { style: 'compact' }), '<1m');
+  assert.equal(formatDuration(192_000, { style: 'compact' }), '03m');
+  assert.equal(formatDuration(7_500_000, { style: 'compact' }), '02h05m');
+  assert.equal(formatDuration(180_180_000, { style: 'compact' }), '2d02h03m');
+  assert.equal(formatDuration(86_400_000, { style: 'compact' }), '1d');
+  assert.equal(formatDuration(183_600_000, { style: 'compact' }), '2d03h');
+  assert.equal(formatDuration(172_980_000, { style: 'compact' }), '2d00h03m');
+  assert.equal(formatDuration(788_400_000, { style: 'compact', maxUnit: 'd' }), '9d03h');
+  assert.equal(formatDuration(777_600_000, { style: 'compact' }), '1w02d');
+  assert.throws(() => formatDuration(1000, { style: 'weird' }), TypeError);
+});
+
 test('formatDuration clamps negatives and reports unknown for non-finite input', () => {
   assert.equal(formatDuration(-5_000), '0s');
   for (const value of [null, undefined, NaN, Infinity]) {

@@ -142,7 +142,8 @@ const {
 
 formatCount(960_462);        // "960K"   (>= 1M keeps one decimal: "15.8M")
 formatDuration(7_500_000);   // "2h 5m"  (up to two units: "3m 12s", "1w 2d")
-formatDuration(788_400_000, { maxUnit: 'd' });  // "9d 3h" (cap the largest unit)
+formatDuration(788_400_000, { maxUnit: "d" });  // "9d 3h" (cap the largest unit)
+formatDuration(180_180_000, { style: "compact" }); // "2d02h03m" (dense, no seconds)
 formatPercent(0.16);         // "16%"
 formatBar(0.16);             // "##        "  (bare fill, no frame)
 formatTimer(2_172_000);       // "00:36:12"  ("5d 18:24:33" past 24h)
