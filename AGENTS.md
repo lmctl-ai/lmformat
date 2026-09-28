@@ -3,6 +3,7 @@
 - Read [developer onboarding](durable-memory/developer_onboard.md) before taking a task.
 - Read [durable design guidance](durable-memory/) and the [CLI output checklist](durable-memory/design_checklist.md).
 - Use [examples](examples/) for runnable output and the [README](README.md) for API and release details.
+- For design context from existing maintainers, see [collaboration](durable-memory/developer_onboard.md#collaboration).
 
 **Protected:** Preserve the onboarding guide's protected invariants: display changes
 are opt-in, dependencies stay at zero, and the trailing cell stays open-ended by

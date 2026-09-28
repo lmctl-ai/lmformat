@@ -9,6 +9,14 @@ no multiline cell wrapping, colour/ANSI styling, or frames.
 **Protected:** Keep zero dependencies. These helpers must remain inexpensive to
 vendor into multiple CLIs; do not introduce a rendering framework for a local need.
 
+## Collaboration
+
+New agents join the existing maintainers. Codex, the existing lmformat agent,
+remains available for design context and the reasoning behind earlier tradeoffs.
+Ask when that context would help; routine work should not require a session
+handoff. Coordinate edits in shared files before overlapping work, and record
+new durable decisions here so the next colleague can work independently too.
+
 ## Where to work
 
 [index.js](../index.js) implements the public functions and shared display-width,
