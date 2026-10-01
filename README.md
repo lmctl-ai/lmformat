@@ -218,22 +218,25 @@ MIT licensed. Project homepage: [lmctl.com](https://lmctl.com).
 CI builds and tests pushes to `main` and pull requests on Node 18, 20, 22, and 24.
 It also installs the built tarball and checks CommonJS and ESM imports.
 `npm run build` checks syntax and produces `release/lmctl-ai-lmformat-VERSION.tgz`.
-Only the library, package metadata, README, and license are included.
+Only the library, TypeScript declarations, package metadata, README, and license are included.
 
 Publishing uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
 from GitHub Actions with provenance. No npm token is stored in GitHub.
 
-One-time setup by an npm account with access to the `@lmctl-ai` scope:
+The first public version, `0.13.0`, was published on October 1, 2026. The trusted
+publisher is configured for repository `lmctl-ai/lmformat`, workflow `publish.yml`,
+with no environment restriction and direct publishing allowed. Maintainers do not
+need to repeat the initial publication or log into npm for ordinary tagged releases.
 
-1. Run `npm login`, then `npm ci && npm test && npm run build` and
-   `npm publish ./release/lmctl-ai-lmformat-0.1.0.tgz --access public` to create
-   the first package version. Complete npm's authentication/2FA prompt if requested.
-2. On npmjs.com, open `@lmctl-ai/lmformat` → Settings → Trusted Publisher and
-   select GitHub Actions. Set organization to `lmctl-ai`, repository to `lmformat`,
-   and workflow filename to `publish.yml`. Leave environment blank and allow
-   direct publishing (`npm publish`).
-3. Subsequent versions publish automatically when their matching version tag is
-   pushed. The workflow tests and builds again before publishing with provenance.
+If the trust configuration needs to be recreated, an authenticated npm package
+maintainer can run this command and complete npm's browser verification:
+
+```sh
+npm trust github @lmctl-ai/lmformat --file publish.yml --repo lmctl-ai/lmformat --allow-publish --yes
+```
+
+New versions publish automatically when their matching version tag is pushed.
+The workflow tests and builds again before publishing with provenance.
 
 For example, after committing changes on `main`:
 
