@@ -1,9 +1,11 @@
 export type TableCell = string | number | boolean | null | undefined;
-export type ColumnAlign = 'left' | 'right';
+export type ColumnAlign = 'left' | 'right' | 'decimal';
 
 export interface TableOptions {
   headers?: TableCell[];
   align?: ColumnAlign[];
+  /** Shared fractional slots for decimal alignment; values are not rounded. */
+  decimalPlaces?: number[];
   /** Truncate over-width cells (default true). False disables all truncation. */
   truncate?: boolean;
   /** Also truncate the last populated cell of each row (default false).
@@ -29,6 +31,8 @@ export interface RenderGridOptions extends TableOptions {
 }
 
 export interface MeasureOptions {
+  align?: ColumnAlign[];
+  decimalPlaces?: number[];
   /** Per-column width caps from manual inspection; null/undefined entries
    * stay uncapped. */
   max?: Array<number | null | undefined>;
@@ -38,6 +42,7 @@ export interface PrintTableOptions extends TableOptions {
   stream?: { write(text: string): void };
 }
 
+export function measureDecimalPlaces(grids: Array<Grid | TableCell[][]>): number[];
 export function measureColumns(grids: Array<Grid | TableCell[][]>, options?: MeasureOptions): number[];
 export function renderGrid(rows: TableCell[][], options?: RenderGridOptions): string;
 export function formatTable(rows: TableCell[][], options?: TableOptions): string;

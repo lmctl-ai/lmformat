@@ -16,11 +16,11 @@ function normalizeRow(row) {
 function normalizeAlign(align) {
   if (align === undefined) return [];
   if (!Array.isArray(align)) {
-    throw new TypeError('align must be an array of "left" or "right" per column');
+    throw new TypeError('align must be an array of "left", "right", or "decimal" per column');
   }
   return align.map((value) => {
-    if (value !== 'left' && value !== 'right') {
-      throw new TypeError('align entries must be "left" or "right"');
+    if (value !== 'left' && value !== 'right' && value !== 'decimal') {
+      throw new TypeError('align entries must be "left", "right", or "decimal"');
     }
     return value;
   });
@@ -120,6 +120,55 @@ function normalizeMax(max) {
   });
 }
 
+// Decimal notation only: keep values literal (no rounding or numeric conversion).
+// Signs, optional dollars, and correctly grouped thousands are accepted.
+function decimalParts(cell) {
+  const match = /^(?:[+-]?\$?|\$[+-]?)(?:\d+|\d{1,3}(?:,\d{3})+|(?=\.))(?:\.(\d+))?$/.exec(cell);
+  if (!match || !/\d/.test(cell)) return null;
+  return { places: match[1]?.length ?? 0 };
+}
+
+function normalizeDecimalPlaces(places) {
+  if (places === undefined) return undefined;
+  if (!Array.isArray(places) || places.some((n) => !Number.isInteger(n) || n < 0)) {
+    throw new TypeError('decimalPlaces must be an array of nonnegative integers');
+  }
+  return places;
+}
+
+/** Measure fractional slots across data rows, excluding headers. Share these
+ * with measureColumns/renderGrid when decimal-aligned sections share a grid. */
+function measureDecimalPlaces(grids) {
+  if (!Array.isArray(grids)) throw new TypeError('grids must be an array of grids');
+  const places = [];
+  for (const input of grids) {
+    const grid = normalizeGrid(input);
+    if (grid.headers !== undefined) normalizeRow(grid.headers);
+    for (const row of grid.rows.map(normalizeRow)) {
+      row.forEach((cell, column) => {
+        places[column] = Math.max(places[column] ?? 0, decimalParts(cell)?.places ?? 0);
+      });
+    }
+  }
+  return places;
+}
+exports.measureDecimalPlaces = measureDecimalPlaces;
+
+function decimalPrecision(grids, alignment, supplied) {
+  const requested = normalizeDecimalPlaces(supplied) ?? [];
+  const measured = alignment.includes('decimal') ? measureDecimalPlaces(grids) : [];
+  return Array.from({ length: Math.max(requested.length, measured.length) },
+    (_, column) => Math.max(requested[column] ?? 0, measured[column] ?? 0));
+}
+
+function decimalCell(cell, places) {
+  const parts = decimalParts(cell);
+  if (!parts) return null;
+  const suffix = parts.places ? parts.places + 1 : 0;
+  const reserved = places ? places + 1 : 0;
+  return cell + ' '.repeat(Math.max(0, reserved - suffix));
+}
+
 /** Measure column display widths across one or more grids. Pair with
  * renderGrid to align several tables on one shared grid.
  * Each column's width is simply the widest cell (headers included) — no
@@ -128,11 +177,13 @@ function normalizeMax(max) {
  * entries stay uncapped); over-width non-trailing cells then truncate with
  * an ellipsis at render time. A cap on the trailing column has no visible
  * effect by default: pass truncateTrailing at render time to bound it too. */
-function measureColumns(grids, { max } = {}) {
+function measureColumns(grids, { max, align, decimalPlaces } = {}) {
   if (!Array.isArray(grids)) {
     throw new TypeError('grids must be an array of grids');
   }
   const caps = normalizeMax(max);
+  const alignment = normalizeAlign(align);
+  const places = decimalPrecision(grids, alignment, decimalPlaces);
   const widths = [];
   const push = (column, width) => {
     widths[column] = Math.max(widths[column] ?? 0, width);
@@ -146,7 +197,8 @@ function measureColumns(grids, { max } = {}) {
     }
     for (const row of grid.rows.map(normalizeRow)) {
       row.forEach((cell, column) => {
-        push(column, displayWidth(cell));
+        const measured = alignment[column] === 'decimal' ? decimalCell(cell, places[column] ?? 0) ?? cell : cell;
+        push(column, displayWidth(measured));
       });
     }
   }
@@ -175,7 +227,7 @@ function normalizeMargin(margin) {
  * error to pass both widths and max). `margin` (spaces count or string)
  * indents every line; `ellipsis` (default '…') is the truncation mark —
  * '' gives a hard cut. */
-function renderGrid(rows, { widths, headers, align, truncate = true, truncateTrailing = false, margin, max, ellipsis } = {}) {
+function renderGrid(rows, { widths, headers, align, truncate = true, truncateTrailing = false, margin, max, ellipsis, decimalPlaces } = {}) {
   if (!Array.isArray(rows)) {
     throw new TypeError('rows must be an array of row arrays');
   }
@@ -188,11 +240,12 @@ function renderGrid(rows, { widths, headers, align, truncate = true, truncateTra
   const indent = normalizeMargin(margin);
   const alignment = normalizeAlign(align);
   const mark = normalizeEllipsis(ellipsis);
-  const columns = widths ?? measureColumns([{ rows, headers }], { max });
+  const places = decimalPrecision([rows], alignment, decimalPlaces);
+  const columns = widths ?? measureColumns([{ rows, headers }], { max, align: alignment, decimalPlaces: places });
   const table = rows.map(normalizeRow);
   if (headers !== undefined) table.unshift(normalizeRow(headers));
 
-  const body = table.map((row) => {
+  const body = table.map((row, rowIndex) => {
     // Omit absent trailing cells, but preserve padding before later populated cells.
     let last = row.length - 1;
     while (last >= 0 && row[last] === '') last--;
@@ -200,6 +253,13 @@ function renderGrid(rows, { widths, headers, align, truncate = true, truncateTra
       const width = columns[column] || 0;
       const fitted = truncate && width > 0 && (column !== last || truncateTrailing)
         ? truncateDisplay(cell, width, mark) : cell;
+      if (alignment[column] === 'decimal') {
+        const padded = headers !== undefined && rowIndex === 0 ? null : decimalCell(cell, places[column] ?? 0);
+        // A narrow explicit width takes precedence over decimal padding. Fall
+        // back to ordinary right alignment rather than truncating a fitting value.
+        const rendered = padDisplay(padded !== null && displayWidth(padded) <= width ? padded : fitted, width, true);
+        return column === last && padded !== null ? rendered.trimEnd() : rendered;
+      }
       if (alignment[column] === 'right') return padDisplay(fitted, width, true);
       return column === last ? fitted : padDisplay(fitted, width, false);
     }).join('  ');
@@ -211,13 +271,13 @@ function renderGrid(rows, { widths, headers, align, truncate = true, truncateTra
 exports.renderGrid = renderGrid;
 
 /** Format rows using the widest cell in each column, with two spaces between columns. */
-function formatTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis } = {}) {
-  return renderGrid(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis });
+function formatTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis, decimalPlaces } = {}) {
+  return renderGrid(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis, decimalPlaces });
 }
 
 /** Print a formatted table and a final newline; empty output writes nothing. */
-function printTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis, stream = process.stdout } = {}) {
-  const output = formatTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis });
+function printTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis, decimalPlaces, stream = process.stdout } = {}) {
+  const output = formatTable(rows, { headers, align, truncate, truncateTrailing, margin, max, ellipsis, decimalPlaces });
   if (output) stream.write(`${output}\n`);
 }
 

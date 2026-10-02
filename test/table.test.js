@@ -263,3 +263,80 @@ test('readme introductory table example matches formatTable output', () => {
   assert.equal(expectedInReadme, actual);
 });
 
+
+test('decimal alignment preserves numeric and dollar precision, including integer placeholders', () => {
+  assert.equal(formatTable([['$10'], ['$0.25'], ['$0.1'], ['$1'], ['n/a']], {
+    headers: ['COST'], align: ['decimal'],
+  }), '  COST\n$10\n $0.25\n $0.1\n $1\n   n/a');
+  assert.equal(formatTable([[12, 'x'], [-1.25, 'y'], ['+.5', 'z']], {
+    align: ['decimal', 'left'],
+  }), '12     x\n-1.25  y\n +.5   z');
+});
+
+test('decimal grids share fractional slots across independently rendered sections', () => {
+  const { measureDecimalPlaces } = require('..');
+  const a = [['$10', '甲']];
+  const b = [['$0.001', '乙'], ['$1.2', '丙']];
+  const decimalPlaces = measureDecimalPlaces([a, b]);
+  const align = ['decimal', 'left'];
+  const widths = measureColumns([a, b], { align, decimalPlaces });
+  assert.deepEqual(decimalPlaces, [3, 0]);
+  assert.deepEqual(widths, [7, 2]);
+  assert.equal(renderGrid(a, { widths, align, decimalPlaces }), '$10      甲');
+  assert.equal(renderGrid(b, { widths, align, decimalPlaces }), ' $0.001  乙\n $1.2    丙');
+});
+
+test('decimal alignment accepts signed dollars and thousands without interpreting other text', () => {
+  assert.equal(formatTable([['$-1.25'], ['-$20'], ['$1,000.5'], ['1e-7'], ['?']], {
+    align: ['decimal'],
+  }), '   $-1.25\n  -$20\n$1,000.5\n     1e-7\n        ?');
+});
+
+test('decimal alignment leaves default layouts alone and respects caps and trailing freedom', () => {
+  const rows = [['$100', 'x'], ['$0.01', 'y']];
+  assert.equal(formatTable(rows), '$100   x\n$0.01  y');
+  assert.equal(formatTable(rows, { align: ['decimal'], max: [4] }), '$100  x\n$0.…  y');
+  assert.equal(formatTable([['$100.25']], { align: ['decimal'], max: [3] }), '$100.25');
+  assert.equal(formatTable([['$100.25']], { align: ['decimal'], max: [3], truncateTrailing: true }), '$1…');
+  assert.equal(formatTable([['$100.25']], { align: ['decimal'], max: [3], truncate: false, truncateTrailing: true }), '$100.25');
+  assert.equal(formatTable([['$1.2', ''], [], [null], ['$10.25', 'ok']], { align: ['decimal'] }),
+    ' $1.2\n\n\n$10.25  ok');
+});
+
+test('decimal headers are ordinary right-aligned text and do not contribute precision', () => {
+  const { measureDecimalPlaces } = require('..');
+  const grids = [{ rows: [[1]], headers: ['0.12345'] }];
+  assert.deepEqual(measureDecimalPlaces(grids), [0]);
+  assert.equal(formatTable([[1]], { headers: ['0.12345'], align: ['decimal'] }), '0.12345\n      1');
+  assert.equal(formatTable([[1], [0.25]], { headers: ['料金'], align: ['decimal'] }), '料金\n1\n0.25');
+});
+
+test('decimal options validate consistently and do not mutate rows or measurements', () => {
+  const { measureDecimalPlaces } = require('..');
+  for (const decimalPlaces of ['2', [-1], [1.5], [NaN], [null]]) {
+    assert.throws(() => formatTable([[1]], { align: ['decimal'], decimalPlaces }), TypeError);
+    assert.throws(() => measureColumns([[[1]]], { align: ['decimal'], decimalPlaces }), TypeError);
+  }
+  assert.throws(() => measureDecimalPlaces('x'), TypeError);
+  assert.throws(() => measureDecimalPlaces([[['bad\ncell']]]), TypeError);
+  assert.throws(() => measureColumns([[[1]]], { align: ['center'] }), TypeError);
+  const rows = Object.freeze([Object.freeze(['$1.2'])]);
+  const decimalPlaces = Object.freeze([3]);
+  const widths = Object.freeze(measureColumns([rows], { align: ['decimal'], decimalPlaces }));
+  assert.equal(renderGrid(rows, { widths, align: ['decimal'], decimalPlaces }), '$1.2');
+  const writes = [];
+  printTable([[1], [0.25]], { align: ['decimal'], stream: { write: s => writes.push(s) } });
+  assert.deepEqual(writes, ['1\n0.25\n']);
+});
+
+
+test('explicit fractional slots never reduce the precision needed by actual values', () => {
+  assert.equal(formatTable([['$10', 'x'], ['$0.1234', 'y']], {
+    align: ['decimal'], decimalPlaces: [1],
+  }), '$10       x\n $0.1234  y');
+});
+
+
+test('decimal fallback preserves literal trailing spaces in nonnumeric cells', () => {
+  assert.equal(formatTable([['n/a '], ['$1.2']], { align: ['decimal'] }), 'n/a \n$1.2');
+});

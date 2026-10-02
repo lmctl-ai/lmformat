@@ -30,8 +30,48 @@ math.lmctl    Lead    done     120          2s
 `printTable(rows, { headers, align, stream }?)` writes it with a final newline to
 `process.stdout` or a supplied writable stream. Empty output writes nothing.
 Headers are optional. You can also include a header as the first row.
-`align` optionally sets each column to `'left'` (default) or `'right'`;
+`align` optionally sets each column to `'left'` (default), `'right'`, or `'decimal'`;
 numeric columns read best right-aligned. Headers follow their column's alignment.
+
+## Decimal alignment
+
+Use `align: ['decimal']` to align decimal points in floating-point values and
+amounts such as `$10`, `$0.25`, and `$0.1`. Values keep their supplied precision:
+spaces reserve missing fractional digits, without adding zeros or rounding.
+Signs (`-$1.25` or `$-1.25`) and comma-grouped thousands are supported. Headers
+and other text (including `n/a`, scientific notation, and non-dollar currencies)
+are right-aligned normally. Decimal notation uses `.` as the separator.
+
+```js
+const rows = [['$10', 'first'], ['$0.25', 'second'], ['$0.1', 'third']];
+console.log(formatTable(rows, { align: ['decimal', 'left'] }));
+```
+
+```text
+$10     first
+ $0.25  second
+ $0.1   third
+```
+
+For multiple sections, share fractional slots as well as widths:
+
+```js
+const { measureDecimalPlaces, measureColumns, renderGrid } = require('@lmctl-ai/lmformat');
+const sections = [[['$10']], [['$0.25'], ['$0.1']]];
+const align = ['decimal'];
+const decimalPlaces = measureDecimalPlaces(sections);
+const widths = measureColumns(sections, { align, decimalPlaces });
+for (const rows of sections) console.log(renderGrid(rows, { widths, align, decimalPlaces }));
+```
+
+`measureDecimalPlaces(grids)` returns the maximum number of fractional digits per
+column across data rows (headers excluded). `decimalPlaces` can reserve more slots (smaller entries cannot reduce measured precision);
+it never rounds or truncates a value. Decimal-aware measurement includes those
+slots in the column width. Supply the same `align` and `decimalPlaces` when measuring
+and rendering shared grids. Single tables measure fractional slots automatically.
+If a width cap cannot fit a value with its alignment spaces, that cell falls back
+to ordinary right alignment with the existing truncation rules. Trailing fractional
+spaces are omitted at the end of a line. Other alignment defaults are unchanged.
 
 ## Measuring and rendering separately
 

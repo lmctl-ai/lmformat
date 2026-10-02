@@ -82,6 +82,15 @@ Keep README examples verified against actual output. Example blocks serve as
 reference output that newcomers and consumers trust; character-level spacing
 mismatches in table examples mislead readers about column alignment and padding.
 
+## Decimal alignment
+
+`align: 'decimal'` is opt-in for decimal notation and optional dollar prefixes.
+Share both `measureDecimalPlaces(grids)` and `measureColumns(grids, { align,
+decimalPlaces })` across sections. Headers and nonnumeric text right-align normally.
+Never convert numeric strings through Number or add precision: padding preserves
+literal input. Existing left/right defaults, width caps and open-ended tails stay
+unchanged; too-narrow widths fall back to ordinary right alignment.
+
 ## Make and verify a change
 
 ```sh

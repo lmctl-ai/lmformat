@@ -1,6 +1,6 @@
 {
   "name": "@lmctl-ai/lmformat",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "description": "Dependency-free CLI output formatting: auto-sized tables, compact counts, durations, and timestamps",
   "main": "index.js",
   "types": "index.d.ts",
