@@ -68,7 +68,6 @@ implements these; callers supply structure, the library owns formatting.
   asks.
 - Untrusted text (filesystem paths, DB values, provider payloads) goes
   through `escapeCell` — one bad value must never abort a listing.
-- Missing or invalid data renders as `unknown` / `?%`, never throws.
 - Best effort everywhere: lint/cost/ratelimit warn or omit rather than
   error on unrecognized models or providers.
 
