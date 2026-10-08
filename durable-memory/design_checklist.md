@@ -1,8 +1,9 @@
 # CLI Output Design Checklist
 
 Design principles for human-readable CLI output in the lmctl ecosystem,
-distilled from the lmformat integration sessions (2026-09-27). lmformat
-implements these; callers supply structure, the library owns formatting.
+distilled from the lmformat integration sessions (2026-09-27). These are caller
+presentation conventions, not a list of library features. lmformat supplies
+formatting primitives; callers own headings, projections, and domain policy.
 
 ## Sections
 
@@ -39,15 +40,9 @@ implements these; callers supply structure, the library owns formatting.
   are fine for ages).
 - Ages carry direction: `3d ago` (`formatRelativeTime`).
 - Percent from fractions: `16%`; non-finite input renders `?%`.
-- Progress is a **bare ASCII fill** (`###       `, `formatBar`) — no bracket
-  frame; the grid is the structure. Pace-matched pairs (usage vs window
-  elapsed) with equal fills mean "perfectly paced"; add an OVERSTOCK column
-  that **projects the current burn rate to the reset**, state spelled out —
-  no sign conventions to misread: `unused +42%` (under/on pace) is the share
-  of the window's quota that will evaporate unused at reset, so perfectly
-  paced reads `+0%` (a snapshot "tokens left" is derivable from USED and is
-  noise); `needing -2d02h03m` (over pace) is the time the user will be
-  blocked — quota exhausts before reset at the current burn rate.
+- Progress defaults to a **bare ASCII fill** (`###       `, `formatBar`) — no
+  bracket frame. Burn-rate and quota projections belong to the consuming app;
+  lmformat does not calculate them.
 - Absolute ISO timestamps and exact values belong in `--json`, not in
   human text.
 
@@ -55,7 +50,8 @@ implements these; callers supply structure, the library owns formatting.
 
 - Alignment uses **terminal display width**: CJK/emoji count double,
   combining marks zero.
-- **Column widths are exactly the widest cell** — no statistical trimming.
+- **Column widths include every cell and requested decimal reservation** — no
+  statistical trimming.
   Measured width is a clue, not a verdict: callers may **pin a column
   explicitly** (measure first, then set `widths[1] = 20` and render) or **cap it**
   (`max: [26]`) after inspecting real data. Over-width mid-row cells truncate

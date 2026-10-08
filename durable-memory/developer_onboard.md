@@ -11,11 +11,10 @@ vendor into multiple CLIs; do not introduce a rendering framework for a local ne
 
 ## Collaboration
 
-New agents join the existing maintainers. Codex, the existing lmformat agent,
-remains available for design context and the reasoning behind earlier tradeoffs.
-Ask when that context would help; routine work should not require a session
-handoff. Coordinate edits in shared files before overlapping work, and record
-new durable decisions here so the next colleague can work independently too.
+Coordinate edits in shared files before overlapping work, and record durable
+choices here. When contacting a maintainer, use the member alias in the local
+`lmformat.lmctl`, not the provider name: the Codex member is currently `Coder`
+(`provider=codex`). Check the current file rather than assuming a session exists.
 
 ## Where to work
 
@@ -24,8 +23,9 @@ padding, and truncation helpers. [index.d.ts](../index.d.ts) is the public TypeS
 contract; change it alongside runtime options. CommonJS and named ESM imports are
 both supported. The surface has three parts:
 
-- Tables: `measureColumns` / `renderGrid` for shared layouts;
-  `formatTable` / `printTable` for a single table.
+- Tables: `measureColumns` / `renderGrid` for shared layouts, with
+  `measureDecimalPlaces` for shared fractional slots; `formatTable` / `printTable`
+  for a single table.
 - Scalar formatting: compact counts, durations, relative/absolute timestamps,
   percentages, bars, and timers.
 - `escapeCell`: sanitize untrusted text before passing it to strict table APIs.
@@ -62,7 +62,11 @@ renderGrid(idleRows, { widths });
 This already supports narrowing or widening one column. Do not reintroduce a
 sparse-width API: it was proposed and explicitly withdrawn as unnecessary.
 `max` caps measurement; `renderGrid` rejects `widths` together with `max`.
-There is no statistical outlier trimming: the caller decides what needs a cap.
+Explicit widths belong to `renderGrid`; `formatTable` and `printTable` measure
+for themselves and ignore a JavaScript `widths` option (their TypeScript options
+exclude it). Zero or missing explicit widths do not constrain a cell, even with
+`truncateTrailing: true`. There is no statistical outlier trimming: the caller
+decides what needs a cap.
 
 **Protected:** The last populated cell of each row is open-ended by default,
 including ragged and single-column rows. It often contains the free text users
@@ -88,8 +92,16 @@ mismatches in table examples mislead readers about column alignment and padding.
 Share both `measureDecimalPlaces(grids)` and `measureColumns(grids, { align,
 decimalPlaces })` across sections. Headers and nonnumeric text right-align normally.
 Never convert numeric strings through Number or add precision: padding preserves
-literal input. Existing left/right defaults, width caps and open-ended tails stay
-unchanged; too-narrow widths fall back to ordinary right alignment.
+literal input. `decimalPlaces` reserves at least the measured fractional slots;
+it cannot reduce precision. Missing decimal points/digits reserve spaces before
+right alignment; synthetic trailing spaces are removed at the end of a row.
+Scientific notation and non-dollar currencies are ordinary right-aligned text,
+not currency/locale parsing. See the [README examples](../README.md#decimal-alignment).
+
+**Protected:** Width/truncation rules still apply to decimal values. If a raw
+value fits but its fractional padding does not, fall back to ordinary right
+alignment. If the raw value itself exceeds a constrained width, normal truncation
+can shorten it. Decimal alignment does not promise lossless output under a cap.
 
 ## Make and verify a change
 
@@ -103,7 +115,9 @@ npm run build
 ```
 
 The build packages plain JavaScript and declarations into `release/`; it does
-not transpile. It checks the package's file allowlist. Add behavioral tests for
+not transpile. Invoke it through `npm run build`: the script needs npm's
+`npm_execpath` to pack with the invoking npm CLI. It checks the package's file
+allowlist. Add behavioral tests for
 new options and assertions that omitted options preserve existing output. For
 table changes, cover headers, ragged rows, trailing cells, alignment, Unicode,
 and interaction with truncation. Check TypeScript consumers as well as runtime.
@@ -117,7 +131,12 @@ via `npm --prefix ../lmctl-src test -- tests/cli/running.test.ts tests/cli/ratel
 Check running, rate-limit, status, and listing output assertions; do not refresh
 expected output to hide a default drift. Run the consumer's full suite before
 accepting a dependency update, and distinguish pre-existing failures from regressions.
-Report which artifact was exercised.
+Report which artifact was exercised. Consumers may vendor different releases;
+read each consumer's `package.json` and lockfile rather than assuming this checkout's
+API is installed. Use that consumer's required Node runtime on `PATH` before npm:
+its `engines`/`devEngines` can be stricter than lmformat's Node 18 minimum. Keep npm
+as the test entry point; bypassing the guard with bare `npx vitest` loses npm's
+environment and can break tests using `npm_execpath`.
 
 lmbee adoption is coordinated by `refact-kimi`; the sibling `lmauto` repository
 also vendors lmformat. Coordinate the candidate with that owner, test its affected

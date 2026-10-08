@@ -7,8 +7,10 @@ Read [developer onboarding](durable-memory/developer_onboard.md) before editing;
 **Protected:** New display behavior is opt-in; existing defaults must not move.
 Keep zero dependencies, terminal display-width measurement, and the last populated
 cell open-ended by default. No multiline wrapping, colour, or frames. Callers own
-layout policy. The onboarding guide explains width overrides, trailing truncation,
-and shared decimal alignment; do not replace these with new implicit policies.
+layout policy. Explicit widths belong to `renderGrid`, not `formatTable`/`printTable`.
+Read the [layout traps](durable-memory/developer_onboard.md#decisions-that-are-easy-to-get-wrong)
+and [decimal rules](durable-memory/developer_onboard.md#decimal-alignment): fractional
+padding preserves precision, but ordinary width truncation can still shorten values.
 
 Table APIs intentionally reject control characters; escape untrusted cells with
 `escapeCell` at the caller boundary. Keep `index.js` and `index.d.ts` consistent.
