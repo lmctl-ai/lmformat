@@ -21,8 +21,16 @@ lmformat depends on **no other project repository** and has no npm dependencies.
 Node.js 18+ supplies its runtime and test runner. These are downstream consumers,
 not prerequisites for building lmformat:
 
-- `mikema3/lmctl-src` — `/home/mma/repos/lmctl-src`.
-- `lmctlhq/lmauto` (including lmbee work) — `/home/mma/repos/lmauto`.
+- **`lmctlhq/lmctl-mono` — `/home/mma/repos/lmctlhq/lmctl-mono`. This is the LIVE consumer**, and it
+  vendors lmformat TWICE, at DIFFERENT versions, so a change must be verified against both:
+  - `lmbee/package.json` -> `"@lmctl-ai/lmformat": "file:vendor/lmctl-ai-lmformat-0.13.0.tgz"`
+  - `lmctl-src/package.json` -> `"@lmctl-ai/lmformat": "file:vendor/lmctl-ai-lmformat-0.14.0.tgz"`
+- The standalone checkouts are NOT where to verify any more (corrected 2026-10-08 by math.lmctl):
+  - `/home/mma/repos/lmauto` — its GitHub repo is **ARCHIVED and read-only** (`gh repo view
+    lmctlhq/lmauto --json isArchived` -> `true`; a push answers 403). Its content moved into
+    lmctl-mono. Verifying here proves nothing can ship.
+  - `/home/mma/repos/lmctl-src` — slated for deletion; the live tree is `lmctl-mono/lmctl-src/`.
+    Nobody should be working in the standalone checkout.
 
 **Protected:** Consumer verification must install the changed tarball in an
 isolated checkout; editing lmformat does not update vendored packages. Follow the
