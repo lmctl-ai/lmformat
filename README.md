@@ -1,5 +1,7 @@
 # lmformat
 
+Documentation: [Quick reference](https://www.lmctl.com/tools/lmformat/) · [LLM skill](https://www.lmctl.com/tools/lmformat/skill.html) · [Guide](https://www.lmctl.com/tools/lmformat/guide.html) · [Reference](https://www.lmctl.com/tools/lmformat/reference.html)
+
 Dependency-free Node.js library for CLI output formatting: automatically sized
 tables, compact counts, durations, and timestamps.
 Install with `npm install @lmctl-ai/lmformat`.
